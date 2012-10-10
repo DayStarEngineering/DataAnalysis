@@ -22,4 +22,6 @@ from pylab import *
 HS = hs.load('/home/kevin/Desktop/health/')
 
 # Plot some useful things:
-hs.plotme(HS,30)
+hs.plot(HS,30)
+hs.plot(HS,31)
+hs.plot(HS,45)
