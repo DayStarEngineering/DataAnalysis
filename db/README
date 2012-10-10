@@ -1,1 +1,72 @@
-This directory contains all the necessary code to implement the DayStar SQL image database.
+This directory contains all the necessary code to implement the DayStar SQL image database. Reccomend   {PyCharm} from
+JetBrains for a nice IDE.
+
+This is hastily written and not very informative. Suck it up.
+
+(0.9) Install MySQL. There is plenty of info on how to do it, so I won't provide it here. Just install it. Learn how to
+      start and stop it, and how to check out data inside it.
+
+1.0 Install the super awesome database connector. Windows is SOL. I think we all should dual boot to do things in Linux.
+    Follow instructions in:
+        /DataAnalysis
+             /db
+                /MySQL_Connector
+                    /docs
+                        /mysql-connector-python.txt
+
+    Pretty easy to install. Worked the first time. Just gotta make sure its installed for the right version of Python.
+    like maybe:
+        >>sudo python2.7 setup.py install
+    Here is more documentation on connecting and testing the connection.
+
+    http://dev.mysql.com/doc/connector-python/en/index.html
+
+2.0 Play with the connection/SQL.
+    -First, you will need a table to play with, so I have provided a nice easy one that is pretty easy to install. Just:
+        shell>>mysql < /DataAnalysis/db/CreateTestTable.txt
+     Should get you set up with your very own database and table, filled with data. You can access it from the command
+     line.
+
+
+
+
+
+1. 'mysql' module is not as good as MySQLdb. The first is installed
+2.
+
+Notes for Zach
+*Install for correct version. Using 2.7.2 in Pycharm
+*Connect with buffers :       **** MUST RECONNECT FOR EACH QUERY??? HOW LAME  ****
+            import mysql.connector
+            cnx=mysql.connector.connect(user='root',database='stocks')
+                cursor=cnx.cursor(buffered=True)
+                info = cnx.cmd_query('select * from status')
+
+                ## Here is what to do I think!!
+                cursor=cnx.cursor()
+                cursor.execute("SELECT * FROM AAPL")
+                names=cursor.column_names
+                rows = cursor.fetchall()                                # Key!!
+            cursor.close()
+            cnx.close()
+
+
+
+
+*---------------------------------- OOh using SQLAlchemy!!! ---------------------------*
+Same install procedure
+ -Also installed SQLAlchemy, hopefully an easy to use ORM for MySQL
+ -Also installed MySQLdb
+            >> import _mysql
+            >> from sqlalchemy import *
+            >> engine = create_engine('mysql://root@localhost/stocks', pool_recycle=3600)
+            >> engine.table_names()   # Works!! Easiest yet. ORM though, may be odd to work with at first
+
+            # Selecting stuff
+
+  * Execute engine all you want, but getting values from 'stuff' closes the connection
+            >> stuff = engine.execute("SELECT * FROM STATUS")
+            >> stuff.keys()
+                  -->[u'ticker', u'filled_to', u'stats_to', u'trend_to', u'trend', u'trend_mag', u'typ_trend_mag']
+            >> stuff.first()
+                  -->('aapl', datetime.date(2012, 9, 24), datetime.date(2012, 9, 24), datetime.date(2008, 1, 2), 0L, Decimal('0.000'), Decimal('0.000'))
