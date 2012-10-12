@@ -6,9 +6,15 @@ import script_setup
 from util import imgutil as imgutil
 # from util import *
 
-tifpic = 'img_1348355543_717188_00015_00000_0_gray.tif'
-datpic = 'img_1348355543_717188_00015_00000_0.dat'
+# image in paths
+tifpicIN = 'C:/Users/Jed/Documents/DayStarSummer/PythonScripts/img_1348355543_717188_00015_00000_0_gray.tif'
+datpicIN = 'C:/Users/Jed/Documents/DayStarSummer/PythonScripts/img_1348355543_717188_00015_00000_0.dat'
+#image out path
+tifpicOUT = 'C:/Users/Jed/Documents/DayStarSummer/PythonScripts/tifpicsaved.tif'
+datpicOUT = 'C:/Users/Jed/Documents/DayStarSummer/PythonScripts/datpicsaved.tif'
 
-imgutil.saveimg(imgutil.loadimg(tifpic),'tifpicsaved.tif')
-imgutil.saveimg(imgutil.loadimg(datpic),'datpicsaved.tif')
+loadedtif = imgutil.loadimg(tifpicIN)
+loadeddat = imgutil.loadimg(datpicIN)
 
+imgutil.saveimg(loadedtif,tifpicOUT)
+imgutil.saveimg(loadeddat,datpicOUT)
