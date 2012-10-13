@@ -29,10 +29,24 @@ This is hastily written and not very informative. Suck it up.
 
 
 
+List of libraries and modules
+*scipy
+*numpy
+*matplotlib
+*_mysql
+*MySQLdb
+*setuptools
+*pip
+*pandas
+---http://fonnesbeck.github.com/ScipySuperpack/---- Installs everything so easily without all the bullshit!
+
+
+
+
 
 
 1. 'mysql' module is not as good as MySQLdb. The first is installed
-2.
+2. Installed the second. MAKE SURE TO DO    >>python2.7 setup.py install    !!!!!!!!!!
 
 Notes for Zach
 *Install for correct version. Using 2.7.2 in Pycharm
