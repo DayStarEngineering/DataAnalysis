@@ -43,7 +43,7 @@ List of libraries and modules
 
 
 
-
+*---------------------------------- Using basic Connection ---------------------------*
 
 1. 'mysql' module is not as good as MySQLdb. The first is installed
 2. Installed the second. MAKE SURE TO DO    >>python2.7 setup.py install    !!!!!!!!!!
@@ -66,8 +66,13 @@ Notes for Zach
 
 
 
+*---------------------------------- PANDAS-built on NumPy array types ---------------------------*
+Pandas is good!!!
 
-*---------------------------------- OOh using SQLAlchemy!!! ---------------------------*
+
+
+
+*---------------------------------- ORM using SQLAlchemy!!! ---------------------------*
 Same install procedure
  -Also installed SQLAlchemy, hopefully an easy to use ORM for MySQL
  -Also installed MySQLdb
@@ -84,3 +89,6 @@ Same install procedure
                   -->[u'ticker', u'filled_to', u'stats_to', u'trend_to', u'trend', u'trend_mag', u'typ_trend_mag']
             >> stuff.first()
                   -->('aapl', datetime.date(2012, 9, 24), datetime.date(2012, 9, 24), datetime.date(2008, 1, 2), 0L, Decimal('0.000'), Decimal('0.000'))
+
+
+
