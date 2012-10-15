@@ -63,8 +63,6 @@ def loaddat(filename):
     
     data = np.fromfile(fileopen, pixT, nPix)# load the data following the header
     data.shape = (ydim, xdim)               # reshape the data stream as a 2-D array
-    data = np.flipud(data)                  # flip upside down and...
-    data = np.rot90(data)                   # rotate for correct orientation
     data = data*32                          # scale 11bits to 16bits for diplaying
     fileopen.close
     return data
@@ -75,8 +73,6 @@ def loadtif(filename):
     JD, DayStar, 10/10/12'''
     tif = TIFF.open(filename, mode='r')  # open tif file
     data = tif.read_image()             # read in pixel values as numpy ndarray
-    data = np.flipud(data)              # flip upside down and...
-    data = np.rot90(data)               # rotate for correct orientation
     TIFF.close(tif)
     return data
 
@@ -96,6 +92,8 @@ def saveimg(imgArray, outfile):
     
     if type(imgArray) is np.ndarray:
         if filetype(outfile) == 'tif':
+            #imgArray = np.flipud(imgArray)                  # flip upside down and...
+            imgArray = np.rot90(imgArray)                   # rotate for correct orientation
             tif = TIFF.open(outfile, mode='w')
             tif.write_image(imgArray)
             TIFF.close(tif)
