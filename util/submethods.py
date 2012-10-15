@@ -25,7 +25,6 @@ def darkcolsub(imgArray):
         imgBend = 2160+32-1      # image rows bottom start 
         DCstart = 16          # columns of dark rows start
         DCend = DCstart+2560-1  # columns of dark rows end
-
         
         # get top dark row column averages
         DRCTavgs = np.ones((1,DCend-DCstart), dtype=np.uint8)
@@ -39,7 +38,6 @@ def darkcolsub(imgArray):
                 j = j+1
             DRCTavgs[0][i] = int(np.average(temp))
             i = i+1
-        print DRCTavgs
 
         # get bottom dark row column averages
         DRCBavgs = np.ones((1,DCend-DCstart), dtype=np.uint8)
@@ -52,8 +50,6 @@ def darkcolsub(imgArray):
                 j = j+1
             DRCBavgs[0][i] = int(np.average(temp))
             i = i+1
-
-        print DRCBavgs
 
         # subtract for columns of top image area
         i = 0

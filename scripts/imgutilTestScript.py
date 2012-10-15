@@ -7,11 +7,11 @@ from util import imgutil as imgutil
 # from util import *
 
 # image in paths
-tifpicIN = 'C:/Users/Jed/Documents/DayStarSummer/PythonScripts/img_1348355543_717188_00015_00000_0_gray.tif'
-datpicIN = 'C:/Users/Jed/Documents/DayStarSummer/PythonScripts/img_1348355543_717188_00015_00000_0.dat'
+tifpicIN = '../testimgdir/img_1348355543_717188_00015_00000_0_gray.tif'
+datpicIN = '../testimgdir/img_1348355543_717188_00015_00000_0.dat'
 #image out path
-tifpicOUT = 'C:/Users/Jed/Documents/DayStarSummer/PythonScripts/tifpicsaved.tif'
-datpicOUT = 'C:/Users/Jed/Documents/DayStarSummer/PythonScripts/datpicsaved.tif'
+tifpicOUT = '../testimgdir/tifpicsaved.tif'
+datpicOUT = '../testimgdir/datpicsaved.tif'
 
 loadedtif = imgutil.loadimg(tifpicIN)
 loadeddat = imgutil.loadimg(datpicIN)
