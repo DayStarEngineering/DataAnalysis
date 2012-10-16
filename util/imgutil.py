@@ -103,9 +103,6 @@ def dispimg(imgArray):
         
     else:
         raise RuntimeError('dispimg(): input must be type np.ndarray')
-# displays image loaded with loadimg()
-# diplays tiff, dat, or array
-# not sure if worth it with so many platforms
 
 
 # ----------------------------- Save Image --------------------------------------
