@@ -43,8 +43,6 @@ class DatabaseConnect:
     #            >>> db.class_info()
     #
     #<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>
-
-
     def class_info(self):
         atts=self.__dict__
         keys=atts.keys()
@@ -56,10 +54,10 @@ class DatabaseConnect:
     #
     #   Purpose: Simple function, provide a mysql connection to the caller
     #
-    #   Inputs: {env} The environment to connect to. I.E. 'test','development', ect
+    #   Inputs: {env} -string- The environment to connect to. I.E. 'test','development', ect
     #
-    #   Outputs: {con} - A database connection object(?). With it, connect to, update, and retrive
-    #                    data from the database, as specified by the 'env' variable.
+    #   Outputs: {con} -obj- A database connection object(?). With it, connect to, update, and retrive
+    #                       data from the database, as specified by the 'env' variable.
     #
     #   Usage  : >>> import DayStarDB as DayStar
     #            >>> db = Daystar.DatabaseConnect({optional specs})
@@ -89,6 +87,20 @@ class DatabaseConnect:
         value = psql.frame_query('select * from stock_test', con=con)
         return value
 
+
+    #*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^* select *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*
+    #
+    #   Purpose: Executes SQL 'SELECT' statement, returns value as a PANDAS frame
+    #
+    #   Inputs:  {query} -String- The SQL select query to be performed
+    #
+    #   Outputs: {value} -Pandas Frame- Results of select query in the form of a Pandas Frame
+    #
+    #   Usage  : >>> import DayStarDB as DayStar
+    #            >>> db = Daystar.DatabaseConnect({optional specs})
+    #            >>> db.select('SELECT * FROM test_table LIMIT 1')
+    #
+    #<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>
     def select(self,query):
         con = self.MySQLconnect(self.env)
         if self.debug:
@@ -96,9 +108,6 @@ class DatabaseConnect:
         value = psql.frame_query(query,con=con)
         con.close()
         return value
-
-
-
 
 
     def find(self,what,where,table=None):
@@ -188,26 +197,20 @@ class DatabaseConnect:
 
 
 
+    def drop_table(self,TableName):
+        if TableName not in self.show_tables(1):
+            print "Table named   %s   has not been defined for the database   %s   " % (TableName,self.env)
+            return -1
+#            sys.exit()
 
-
-
-
-
-
-    def verify(self,prompt):
-        yes = set(['yes','y', 'ye'])
-        no  = set(['no','n'])
-
-        choice = raw_input(prompt).lower()
-        if choice in yes:
-            return True
-        elif choice in no:
-            return False
+        drop_table_sql = 'DROP TABLE IF EXISTS %s ;' % TableName
+        self.execute_statement(drop_table_sql)
+        # Verify The Drop
+        convert_to_list = 1
+        if TableName in self.show_tables(convert_to_list):
+            print "Uh oh, table   [%s]   was not dropped correctly. It still exists" % TableName
         else:
-            sys.stdout.write(prompt)
-
-
-
+            print "Table   [%s]   was dropped successfully " % TableName
 
     def create_table(self,TableName):
         if TableName.__class__ is not str:
@@ -220,14 +223,15 @@ class DatabaseConnect:
         create_keys ={
             'rawdata':'CREATE TABLE rawdata ('+
                       'id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,'    # Identifier
-                      'raw_fn VARCHAR(100) NOT NULL,'                      # Raw, unprocessed filename
+                      'raw_fn VARCHAR(100) NOT NULL,'                      # Raw, unprocessed filename and path, excluding local DayStarDir
+                      'drive VARCHAR(30),'                                 # Original Drive Location (/data1,/data2...)
                       'seconds INT(10),'                                   # Seconds since 1970. 6 digit
                       'usec INT(6),'                                       # usec since last second
                       'burst_num INT(4),'                                  # Burst number in sequence
                       'image_num INT(5),'                                  # Image number in burst
                       'gain boolean,'                                      # Gain. 1=high, low=0
-                      'exposure INT(4),'
-                      'time TIME,'                                          #(hours, minutes, seconds)-insert into foo (time) values("4:54:32");, must round to nearest second
+                      'exposure INT(4),'                                   # Exposure time in [ms]
+                      'time TIME,'                                         #(hours, minutes, seconds)-insert into foo (time) values("4:54:32");, must round to nearest second
                       'PRIMARY KEY(id))'
         }
 
@@ -236,14 +240,8 @@ class DatabaseConnect:
             print 'Update DayStarDB.create_table, or create it yourself'
             return -1
 
-        drop_table_sql = 'DROP TABLE IF EXISTS %s ;' % TableName
-        self.execute_statement(drop_table_sql)
-        # Verify The Drop
-        convert_to_list = 1
-        if TableName in self.show_tables(convert_to_list):
-            print "Uh oh, table   [%s]   was not dropped correctly. It still exists" % TableName
-        else:
-            print "Table   [%s]   was dropped successfully " % TableName
+        # Drop the table
+        self.drop_table(TableName)
 
         create_table_sql = create_keys[TableName]
         self.execute_statement(create_table_sql)
@@ -254,5 +252,18 @@ class DatabaseConnect:
             print "Table  [%s]  Was created successfully!" % TableName
         else:
             print "Table   [%s]   was dropped successfully " % TableName
+
+
+        def verify(self,prompt):
+            yes = set(['yes','y', 'ye'])
+            no  = set(['no','n'])
+
+            choice = raw_input(prompt).lower()
+            if choice in yes:
+                return True
+            elif choice in no:
+                return False
+            else:
+                sys.stdout.write(prompt)
 
 
