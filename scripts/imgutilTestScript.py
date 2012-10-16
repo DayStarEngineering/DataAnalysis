@@ -16,5 +16,10 @@ datpicOUT = '../testimgdir/datpicsaved.tif'
 loadedtif = imgutil.loadimg(tifpicIN)
 loadeddat = imgutil.loadimg(datpicIN)
 
+# display loaded dat
+imgutil.dispimg(loadedtif)
+imgutil.dispimg(loadeddat)
+
+# save loaded pictures
 imgutil.saveimg(loadedtif,tifpicOUT)
 imgutil.saveimg(loadeddat,datpicOUT)

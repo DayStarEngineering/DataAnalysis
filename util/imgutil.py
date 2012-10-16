@@ -5,6 +5,7 @@
 import numpy as np
 from libtiff import TIFF
 import grayconv
+from pylab import *
 
 # ------------------------------- Load Image ---------------------------------
 # loadimg(): loads a tiff, dat, or array into memory
@@ -91,7 +92,17 @@ def loadtif(filename):
 
 
 # -----------------------------Display Image-------------------------------------
-# dispimg()
+def dispimg(imgArray):
+    '''dispimg(): uses imshow to display a numpy ndarray'''    
+    if type(imgArray) is np.ndarray:
+        figure()
+        gray()
+        imshow(imgArray, cmap=None, norm=None, aspect=None, interpolation='nearest', origin='upper')
+        colorbar()    
+        show()
+        
+    else:
+        raise RuntimeError('dispimg(): input must be type np.ndarray')
 # displays image loaded with loadimg()
 # diplays tiff, dat, or array
 # not sure if worth it with so many platforms
