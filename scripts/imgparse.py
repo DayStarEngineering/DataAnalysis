@@ -17,21 +17,21 @@ import sys
 from datetime import datetime
 
 # Globals
-'''
-ROOT = '/media/'
-HD = 'daystar/'
-IMGPATH = ['data/img', 'data1/img', 'data2/img']
-'''
 
+ROOT = '/media/'
+HD = '42C6A1602ABBB656/'
+IMGPATH = ['data/img', 'data1/img', 'data2/img']
+
+'''
 ROOT = '/home/sticky/Daystar/dev/'
 HD = 'harddrive/'
 IMGPATH = ['data/img', 'data2/img']
-
+'''
 
 DEST = '../db' + '/img_db.csv'
 
 HEADERS = ['Filename', 'Time (s)', 'Time (us)', 'Hour',
-           'Burst Number', 'Image Number', 'Gain'] 
+           'Burst Number', 'Image Number', 'Gain','Exposure (ms)'] 
 
 # -----------------
 # --- FUNCTIONS ---
@@ -72,6 +72,7 @@ def parseDir(root, imgpath):
         fields = fields + name.split('_')
         
         # Remove leading zeros from batch and img number
+        batch = int(fields[3])
         fields[3] = str(int(fields[3]))
         fields[4] = str(int(fields[4]))
         
@@ -80,12 +81,74 @@ def parseDir(root, imgpath):
         hour = str( unix2hour( unixTime ) )
         
         # Add filename and time in hours to list
-        fields.insert(3, hour)
+        fields.insert(3, hour) # pushed batch, img number to fields[4], fields[5]
+        
+        # Add in exposure time based on batch number
+        fields.append(str(batch2exptime(batch))) # gain = fields [6], exptime = fields[7]
         
         # Convert to single CSV line
         writeList.append(','.join(fields))
 
     return writeList
+
+def batch2exptime(batch):
+    '''Returns the exposure time (ms) of an image as an int based on its batch number.'''
+
+    # Daytime, batches 0-59, 20,30,40,50 ms exposures
+    if batch in range(0, 60): # 0-59
+        index = 0
+        for i in range(0, 6): # 5 daytime bursts
+            if batch in range(0+index,3+index):    # 0-2
+                exptime = 20
+                return exptime
+            elif batch in range(3+index,6+index):  # 3-5
+                exptime = 30
+                return exptime
+            elif batch in range(6+index,9+index):  # 6-8
+                exptime = 40
+                return exptime
+            elif batch in range(9+index,12+index): # 9-11
+                exptime = 50
+                return exptime
+            index = index + 12
+                    
+    # Twilight, batches 60-143, 20,30,40,50 ms exposures
+    elif batch in range(60, 144): #60-143
+        index = 60
+        for i in range(0,7*3): # 7 daytime bursts x 3 gain settings
+            if batch == index + 0:   # 0
+                exptime = 20
+                return exptime
+            elif batch == index + 1: # 1
+                exptime = 30
+                return exptime
+            elif batch == index + 2: # 2
+                exptime = 40
+                return exptime
+            elif batch == index + 3: # 3
+                exptime = 50
+                return exptime
+            index = index + 4
+
+    # Nightime, batches 144-197, 30,50,70ms exposures
+    elif batch in range(144, 198): # 144-197
+        index = 144
+        for i in range(0, 7): # 6 nighttime bursts
+            if batch in range(0+index,3+index):    # 0-2
+                exptime = 30
+                return exptime
+            elif batch in range(3+index,6+index):  # 3-5
+                exptime = 50
+                return exptime
+            elif batch in range(6+index,9+index):  # 6-8
+                exptime = 70
+                return exptime
+            index = index + 9
+    
+    # Not a valid batch number
+    else:
+        raise RuntimeError('Batch number is out of bounds: 0-197.')
+
 
 # ------------
 # --- MAIN ---
