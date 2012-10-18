@@ -10,7 +10,7 @@ from pylab import *
 # ------------------------------- Load Image ---------------------------------
 # loadimg(): loads a tiff, dat, or array into memory
 # returns numpy array of 16 bit integers
-def loadimg(filename):    
+def loadimg(filename,arg2=None):    
     '''loadimg(): Loads *.tif and *.dat files and returns them as numpy nmarrays.
     Requires: numpy, libtiff, and pyFITS.
     JD, DayStar, 10/10/12'''
@@ -26,7 +26,10 @@ def loadimg(filename):
         
         # Dat file type    
         elif (imgtype == 'dat'):
-            imgout = loaddat(filename)
+            if arg2 == None:
+                imgout = loaddat(filename)
+            else:
+                imgout = loadfulldat(filename) 
             return imgout
 
         elif (imgtype == 'fits'):
@@ -41,7 +44,6 @@ def loadimg(filename):
             raise RuntimeError('Unsupported image file type for loadimg().')
     else:
         raise RuntimeError('Variable type not supported by loadimg().')
-
 
 
 # ----- loadimg() supporting functions ---------
@@ -61,12 +63,35 @@ def filetype(file):
     return file.split(".")[-1]
 
 def loaddat(filename):
-    '''loaddat(): Loads the image pixel data from a *.dat file created by DAYSTAR into a numpy array.
+    '''loaddat(): Loads the image pixel data from a *.dat file created by DAYSTAR 
+    into a numpy array.
     This routine ASSUMES that the row size is 2560 + 32 overscan pixels = 2592.
     It ASSUMES that the number of rows is 2160 + 32 = 2192. It assumed 16 bits
     per pixel. Values are scaled from 11 bit to 16 bit units and converted from 
-    uint16 gray code to uint16 binary.
-    EFY, SwRI, 3-JUN-2012
+    uint16 gray code to uint16 binary. A cropped 2160x2560 image is returned.
+    JD, DayStar, 10/15/12'''
+    fileopen = open(filename, mode='rb') # Open the file in binary read mode.
+    
+    xdim = 2560 + 32
+    ydim = 2160 + 32
+    nPix = xdim*ydim
+    pixT = 'uint16' # Could be 'uint16' for unsigned shorts.
+    
+    data = np.fromfile(fileopen, pixT, nPix)# load the data following the header
+    data.shape = (ydim, xdim)               # reshape the data stream as a 2-D array
+    data = cropimg(data)                    # crop image to 2160x2560
+    data = data*32                          # scale 11 bit uints to 16 bit for diplaying
+    data = gimg2bimg(data)                  # gray to binary conversion
+    fileopen.close
+    return data
+
+def loadfulldat(filename):
+    '''loaddatfull(): Loads the image pixel data from a *.dat file created by DAYSTAR 
+    into a numpy array.
+    This routine ASSUMES that the row size is 2560 + 32 overscan pixels = 2592.
+    It ASSUMES that the number of rows is 2160 + 32 = 2192. It assumed 16 bits
+    per pixel. Values are scaled from 11 bit to 16 bit units and converted from 
+    uint16 gray code to uint16 binary. Full 2192x2592 image is returned.
     JD, DayStar, 10/15/12'''
     fileopen = open(filename, mode='rb') # Open the file in binary read mode.
     
@@ -82,6 +107,7 @@ def loaddat(filename):
     fileopen.close
     return data
 
+
 def loadtif(filename):
     '''loadtif(): Loads *.tif file and returns a numpy ndarray. Uses libtiff functions.
     JD, DayStar, 10/10/12'''
@@ -90,17 +116,34 @@ def loadtif(filename):
     TIFF.close(tif)
     return data
 
+def cropimg(imgArray):
+    '''croping(): crops the dark rows and cols of a 2592x2192 image and returns the 
+    2560x2160 image area'''
+    top = imgArray[0:1080][:,16:2560+16]
+    bott = imgArray[1080+32:2160+32][:,16:2560+16]
+    img = np.vstack([top,bott])
+    return img
 
 # -----------------------------Display Image-------------------------------------
-def dispimg(imgArray):
-    '''dispimg(): uses imshow to display a numpy ndarray'''    
+def dispimg(imgArray, viewfactor=None):
+    '''dispimg(): uses pylab, imshow to display a numpy ndarray. viewfactor multiplies
+    the entire image by the viewfactor.'''    
     if type(imgArray) is np.ndarray:
-        figure()
-        gray()
-        imshow(imgArray, cmap=None, norm=None, aspect=None, interpolation='nearest', origin='upper')
-        colorbar()    
-        show()
-        
+        if viewfactor == None:
+            figure()
+            gray()
+            imshow(imgArray, cmap=None, norm=None, aspect=None,
+                        interpolation='nearest', origin='upper')
+            colorbar()    
+            show()
+
+        elif viewfactor != None and type(viewfactor) == int:
+            figure()
+            gray()
+            imshow(imgArray*viewfactor, cmap=None, norm=None, aspect=None,
+                                    interpolation='nearest', origin='upper')
+            colorbar()    
+            show()
     else:
         raise RuntimeError('dispimg(): input must be type np.ndarray')
 

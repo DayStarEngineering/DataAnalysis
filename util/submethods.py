@@ -14,61 +14,65 @@ import numpy as np
 def darkcolsub(imgArray):
 
     if type(imgArray) == np.ndarray:
-        # useful index numbers
-        imgTstart = 0          # image rows top start
-        imgTend = 1080         # image rows top end
-        DRTstart = 1080       # dark rows top start
-        DRTend = DRTstart+16  # dark rows top end
-        DRBstart = DRTend   # dark rows bottom start
-        DRBend = DRBstart+16  # dark rows bottom end
-        imgBstart = DRBend   # image rows bottom start
-        imgBend = 2160+32      # image rows bottom start 
-        DCstart = 16          # columns of dark rows start
-        DCend = DCstart+2560  # columns of dark rows end
+        if imgArray.shape == (2192,2592):
         
-        # get top dark row column averages
-        DRCTavgs = np.ones((1,DCend-DCstart), dtype=np.uint16)
-        temp = np.ones((1,16),dtype=np.uint8)
+            # useful index numbers
+            imgTstart = 0          # image rows top start
+            imgTend = 1080         # image rows top end
+            DRTstart = 1080       # dark rows top start
+            DRTend = DRTstart+16  # dark rows top end
+            DRBstart = DRTend   # dark rows bottom start
+            DRBend = DRBstart+16  # dark rows bottom end
+            imgBstart = DRBend   # image rows bottom start
+            imgBend = 2160+32      # image rows bottom start 
+            DCstart = 16          # columns of dark rows start
+            DCend = DCstart+2560  # columns of dark rows end
+            
+            # get top dark row column averages
+            DRCTavgs = np.ones((1,DCend-DCstart), dtype=np.uint16)
+            temp = np.ones((1,16),dtype=np.uint16)
 
-        i = 0
-        for col in xrange(DCstart,DCend):
-            j = 0
-            for row in xrange(DRTstart,DRTend):
-                temp[0][j] = imgArray[row][col]
-                j = j+1
-            DRCTavgs[0][i] = int(np.average(temp))
-            i = i+1
+            i = 0
+            for col in xrange(DCstart,DCend):
+                j = 0
+                for row in xrange(DRTstart,DRTend):
+                    temp[0][j] = imgArray[row][col]
+                    j = j+1
+                DRCTavgs[0][i] = int(np.average(temp))
+                i = i+1
 
-        # get bottom dark row column averages
-        DRCBavgs = np.ones((1,DCend-DCstart), dtype=np.uint16)
+            # get bottom dark row column averages
+            DRCBavgs = np.ones((1,DCend-DCstart), dtype=np.uint16)
 
-        i = 0
-        for col in xrange(DCstart,DCend):
-            j = 0
-            for row in xrange(DRBstart,DRBend):
-                temp[0][j] = imgArray[row][col]
-                j = j+1
-            DRCBavgs[0][i] = int(np.average(temp))
-            i = i+1
+            i = 0
+            for col in xrange(DCstart,DCend):
+                j = 0
+                for row in xrange(DRBstart,DRBend):
+                    temp[0][j] = imgArray[row][col]
+                    j = j+1
+                DRCBavgs[0][i] = int(np.average(temp))
+                i = i+1
 
-        # subtract for columns of top image area
-        i = 0
-        for col in xrange(DCstart,DCend):
-            for row in xrange(imgTstart,imgTend):
-                newval = imgArray[row][col] - DRCTavgs[0][i]
-                imgArray[row][col] = newval
-            i = i+1
+            # subtract for columns of top image area
+            i = 0
+            for col in xrange(DCstart,DCend):
+                for row in xrange(imgTstart,imgTend):
+                    newval = imgArray[row][col] - DRCTavgs[0][i]
+                    imgArray[row][col] = newval
+                i = i+1
 
-        # subtract for columns of bottom image area
-        i = 0
-        for col in xrange(DCstart,DCend):
-            for row in xrange(imgBstart,imgBend):
-                newval = imgArray[row][col] - DRCBavgs[0][i]
-                imgArray[row][col] = newval
-            i = i+1
-        
-        # return subtracted image
-        return imgArray
+            # subtract for columns of bottom image area
+            i = 0
+            for col in xrange(DCstart,DCend):
+                for row in xrange(imgBstart,imgBend):
+                    newval = imgArray[row][col] - DRCBavgs[0][i]
+                    imgArray[row][col] = newval
+                i = i+1
+            
+            # return subtracted image
+            return imgArray
+        else:
+            raise RuntimeError('darkcolsub(): 2192x2592 image required.')
                 
     else:
         raise RuntimeError('numpy ndarray input required. Try using loadimg() first.')
@@ -78,62 +82,50 @@ def darkcolsub(imgArray):
 def colmeansub(imgArray):
 
     if type(imgArray) == np.ndarray:
-        # useful index numbers
-        imgTstart = 0          # image rows top start
-        imgTend = 1080         # image rows top end
-        DRTstart = 1080       # dark rows top start
-        DRTend = DRTstart+16  # dark rows top end
-        DRBstart = DRTend   # dark rows bottom start
-        DRBend = DRBstart+16  # dark rows bottom end
-        imgBstart = DRBend   # image rows bottom start
-        imgBend = 2160+32      # image rows bottom start 
-        DCstart = 16          # columns of dark rows start
-        DCend = DCstart+2560  # columns of dark rows end
-        
-        # get top column averages
-        CTavgs = np.ones((1,DCend-DCstart), dtype=np.uint16)
-        temp = np.ones((1,2160),dtype=np.uint16)
+        if imgArray.shape == (2160,2560):
+            # useful index numbers
+            TRstart = 0          # image rows top start
+            TRend = 1080         # image rows top end
+            BRstart = TRend   # image rows bottom start
+            BRend = 2160      # image rows bottom start 
+            Cstart = 0          # columns of dark rows start
+            Cend = 2560  # columns of dark rows end
+            
+            topAvgs = np.ones((1,2560),dtype=np.uint16)
+            bottAvgs = np.ones((1,2560),dtype=np.uint16)
 
-        i = 0
-        for col in xrange(DCstart,DCend):
-            j = 0
-            for row in xrange(imgTstart,imgTend):
-                temp[0][j] = imgArray[row][col]
-                j = j+1
-            CTavgs[0][i] = int(np.average(temp))
-            i = i+1
+            # top and botton column averages
+            for col in range(Cstart,Cend):
+                topAvgs[0][col] = int(np.average(imgArray[TRstart:TRend][:,col:col+1]))
+                bottAvgs[0][col] = int(np.average(imgArray[BRstart:BRend][:,col:col+1]))      
+            
+            # subtract for columns of top image area
+            def subtract_uint16(a, b):
+                '''Subtraction to avoid overflow problems and negatives. If the difference a-b 
+                is less than 0 it is assigned the value 0.'''
+                A = int(a) # signed int32
+                B = int(b) # signed int32
+                if A-B < 0:
+                    return (np.uint16(0)) # return 0
+                else:
+                    return (a-b)
+            
+            for col in xrange(Cstart,Cend):
+                for row in xrange(TRstart,TRend):
+                    imgArray[row][col] = subtract_uint16(imgArray[row][col], topAvgs[0][col])
+                for row in xrange(BRstart,BRend):
+                    imgArray[row][col] = subtract_uint16(imgArray[row][col], bottAvgs[0][col])
+            
+            # return subtracted image
+            return imgArray
 
-        # get bottom column averages
-        CBavgs = np.ones((1,DCend-DCstart), dtype=np.uint16)
-
-        i = 0
-        for col in xrange(DCstart,DCend):
-            j = 0
-            for row in xrange(imgBstart,imgBend):
-                temp[0][j] = imgArray[row][col]
-                j = j+1
-            CBavgs[0][i] = int(np.average(temp))
-            i = i+1
-
-        # subtract for columns of top image area
-        i = 0
-        for col in xrange(DCstart,DCend):
-            for row in xrange(imgTstart,imgTend):
-                newval = imgArray[row][col] - CTavgs[0][i]
-                imgArray[row][col] = newval
-            i = i+1
-
-        # subtract for columns of bottom image area
-        i = 0
-        for col in xrange(DCstart,DCend):
-            for row in xrange(imgBstart,imgBend):
-                newval = imgArray[row][col] - CBavgs[0][i]
-                imgArray[row][col] = newval
-            i = i+1
-        
-        # return subtracted image
-        return imgArray
-                
+        else:   
+           raise RuntimeError('colmeansub(): image must be 2160x2560')                
     else:
         raise RuntimeError('numpy ndarray input required. Try using loadimg() first.')
+        
+    
+        
+        
+        
     
