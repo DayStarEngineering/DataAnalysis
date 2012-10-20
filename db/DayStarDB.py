@@ -1,34 +1,44 @@
 __author__ = 'zachdischner'
 
-# Might want to get rid of EXECUTE_STATEMENT, SELECT with Pandas seems to work much better
+# Notes/todos
 
-import MySQLdb as MDB
-import numpy as NP
-import datetime
-import sys
-import pandas.io.sql as psql
+
+
+
+#mysql -u root -e "LOAD DATA LOCAL INFILE '/Users/zachdischner/Desktop/imgdb.csv' INTO TABLE rawdata FIELDS TERMINATED BY ','" test
+
+import MySQLdb as MDB           # MySQL wrapper for the _mysql module. Needed for other libraries and most interaction
+import numpy as NP              # NumPY library for numbers and stuff
+import datetime                 # Datetime utils
+import sys                      # System utils
+import pandas.io.sql as psql    # AWESOME wrapper for MySQL. Builds on MySQLdb, and makes SELECTing and sorting data easy.
+
+#*^*^*^*^*^*^*^*^ Class ^*^*^*^*^*^*^*^* DatabaseConnect *^*^*^*^*^*^* Class *^*^*^*^*^*^*^*^*
+#
+#   Purpose: This class contains all database connectivity and interaction functionality.
+#            For now, it is a mix of general utils and code specific to DayStar
+#
+#   Inputs: {env} -string (optional)- The environment to use. This is set at the class level, as
+#                   many subroutines will rely on this class attribute. Default is set to the
+#                   most used envitonment
+#           {default_table} -string (optional)- The default table to perform all queries on. Methods
+#                   will make use this attribute when no table input is provided. Useful for work with
+#                   only a single table.
+#           {debug} -int (optional)- Set to higher values to enable more print/debugging statements.
+#
+#   Outputs: {} -obj- an object instantiation of this class
+#
+#   Usage  : >>> import DayStarDB as DayStar
+#            >>> db = Daystar.DatabaseConnect(test=2,environment='rawdata')
+#
+#<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>
 
 class DatabaseConnect:
-    def __init__(self, environment='stock_test',default_table='stock_test',debug=1,):
+    def __init__(self, environment='stock_test',default_table='stock_test',debug=1):
         self.env = environment
         self.debug=debug
         self.default_table=default_table
 
-
-    # Gotta import sys
-    # sys.path.append('./db/')
-    # import DB_testing as db
-    # testdb=db.DatabaseConnect)()
-
-    #con = None
-    #print "Now trying to test out a script or something to connect to my database"
-    #env='stock_test'
-    #print "You are using the  >>", env,"<< environment"
-
-
-
-    #from collections import namedtuple
-    #>>> xx=namedtuple("xx",x[0].keys())
 
     #*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^* class_info *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*
     #
@@ -70,7 +80,7 @@ class DatabaseConnect:
             # Homemade 'switch' statement. Connect automagically to the database environment of choice
         con = {
             'stock_test': MDB.connect(host='localhost', user='root', passwd='', db='test'),
-            'development': 2,
+            'rawdata': MDB.connect(host='localhost', user='root', passwd='', db='DayStar'),
             'production': 3
         }
         if env in con:
@@ -81,7 +91,7 @@ class DatabaseConnect:
         return connection
 
 
-
+    # fast test method. Get rid of eventually
     def panda_select(self):
         con = self.MySQLconnect(self.env)
         value = psql.frame_query('select * from stock_test', con=con)
@@ -137,8 +147,9 @@ class DatabaseConnect:
     def show_tables(self,to_list=0):
         show_sql="SHOW TABLES"
         tables = self.select(show_sql)
+        key=tables.keys()[0]                  #dynamically created. Its "tables.tables_in_test", or "tables.tables_in_daystar"
         if to_list:
-            return tables.Tables_in_test.tolist()
+            return eval('tables.'+key+'.tolist()')
         else:
             return tables
 
@@ -224,14 +235,15 @@ class DatabaseConnect:
             'rawdata':'CREATE TABLE rawdata ('+
                       'id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,'    # Identifier
                       'raw_fn VARCHAR(100) NOT NULL,'                      # Raw, unprocessed filename and path, excluding local DayStarDir
-                      'drive VARCHAR(30),'                                 # Original Drive Location (/data1,/data2...)
+#                      'drive VARCHAR(30),'                                 # Original Drive Location (/data1,/data2...)
                       'seconds INT(10),'                                   # Seconds since 1970. 6 digit
                       'usec INT(6),'                                       # usec since last second
+                      'hours float(10,10),'
                       'burst_num INT(4),'                                  # Burst number in sequence
                       'image_num INT(5),'                                  # Image number in burst
                       'gain boolean,'                                      # Gain. 1=high, low=0
                       'exposure INT(4),'                                   # Exposure time in [ms]
-                      'time TIME,'                                         #(hours, minutes, seconds)-insert into foo (time) values("4:54:32");, must round to nearest second
+#                      'time TIME,'                                         #(hours, minutes, seconds)-insert into foo (time) values("4:54:32");, must round to nearest second
                       'PRIMARY KEY(id))'
         }
 
@@ -254,16 +266,16 @@ class DatabaseConnect:
             print "Table   [%s]   was dropped successfully " % TableName
 
 
-        def verify(self,prompt):
-            yes = set(['yes','y', 'ye'])
-            no  = set(['no','n'])
+    def verify(self,prompt):
+        yes = set(['yes','y', 'ye'])
+        no  = set(['no','n'])
 
-            choice = raw_input(prompt).lower()
-            if choice in yes:
-                return True
-            elif choice in no:
-                return False
-            else:
-                sys.stdout.write(prompt)
+        choice = raw_input(prompt).lower()
+        if choice in yes:
+            return True
+        elif choice in no:
+            return False
+        else:
+            sys.stdout.write(prompt)
 
 
