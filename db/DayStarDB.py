@@ -13,6 +13,7 @@ import datetime                 # Datetime utils
 import sys                      # System utils
 import pandas.io.sql as psql    # AWESOME wrapper for MySQL. Builds on MySQLdb, and makes SELECTing and sorting data easy.
 
+
 #*^*^*^*^*^*^*^*^ Class ^*^*^*^*^*^*^*^* DatabaseConnect *^*^*^*^*^*^* Class *^*^*^*^*^*^*^*^*
 #
 #   Purpose: This class contains all database connectivity and interaction functionality.
@@ -78,18 +79,44 @@ class DatabaseConnect:
         if env is None:
             env = self.env
             # Homemade 'switch' statement. Connect automagically to the database environment of choice
-        con = {
-            'stock_test': MDB.connect(host='localhost', user='root', passwd='', db='test'),
-            'rawdata': MDB.connect(host='localhost', user='root', passwd='', db='DayStar'),
-            'production': 3
-        }
-        if env in con:
-            connection= con[env]
-        else:
-            print 'invalid connection environment, returning generic connection'
-            connection = MDB.connect(host='localhost', user='root')
-        return connection
 
+            #Redo with a TRY-EXCEPT statement
+#
+#            try:
+#    ...     con=MDB.connect(host='localhost', user='root', passwd='', db='DayStar2')
+#    ... except:
+#    ...     con=MDB.connect(host='localhost', user='root', passwd='')
+
+        config = {
+            'base': {'host':'localhost', 'user':'root', 'passwd':'','db':'test'},
+            'stock_test': {'host':'localhost', 'user':'root', 'passwd':'', 'db':'test'},
+            'rawdata': {'host':'localhost', 'user':'root', 'passwd':'', 'db':'DayStar'},
+            'production': 3
+                }
+
+        try:
+            if env in config:                           # If we have defined the connection information
+
+                my_config= config[env]
+                if self.debug > 0:
+                    print "Connecting using    >>" + env + "    environment"
+                    print "Using configuration "
+                    print my_config
+                connection=MDB.connect(**my_config)     # Connect
+            else:                                       # If we have NOT defined the connection information
+                print 'invalid connection environment, returning generic connection'
+                connection = MDB.connect(host='localhost', user='root')
+
+
+        except:                                         # If the connection failed, probably DB was not defined yet
+            print 'Error connecting to your environment. Possibly, the database has not been created.'
+            print 'Generic Connection returning.'
+            my_config = {'host':'localhost', 'user':'root', 'passwd':'','db':'test'}
+            print my_config
+            connection = MDB.connect(**my_config)
+
+        # Return
+        return connection
 
     # fast test method. Get rid of eventually
     def panda_select(self):
@@ -207,6 +234,19 @@ class DatabaseConnect:
             print "Good plan. Just do it later bro"
 
 
+    def describe_table(self,TableName=0):
+        if TableName is 0:
+            TableName = self.default_table
+
+        if TableName not in self.show_tables(1):
+            print "Table  >>" + TableName + "    is not in this database. Can't describe"
+            return -1
+
+        desc_query = 'DESCRIBE ' + TableName
+        description = self.select(desc_query)
+        return description
+
+
 
     def drop_table(self,TableName):
         if TableName not in self.show_tables(1):
@@ -234,16 +274,16 @@ class DatabaseConnect:
         create_keys ={
             'rawdata':'CREATE TABLE rawdata ('+
                       'id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,'    # Identifier
+                      'drive VARCHAR(30),'                                 # Original Drive Location (/data1,/data2...)
                       'raw_fn VARCHAR(100) NOT NULL,'                      # Raw, unprocessed filename and path, excluding local DayStarDir
-#                      'drive VARCHAR(30),'                                 # Original Drive Location (/data1,/data2...)
                       'seconds INT(10),'                                   # Seconds since 1970. 6 digit
                       'usec INT(6),'                                       # usec since last second
                       'hours float(10,10),'
+                      'time TIME,'                                         #(hours, minutes, seconds)-insert into foo (time) values("4:54:32");, must round to nearest second
                       'burst_num INT(4),'                                  # Burst number in sequence
                       'image_num INT(5),'                                  # Image number in burst
                       'gain boolean,'                                      # Gain. 1=high, low=0
                       'exposure INT(4),'                                   # Exposure time in [ms]
-#                      'time TIME,'                                         #(hours, minutes, seconds)-insert into foo (time) values("4:54:32");, must round to nearest second
                       'PRIMARY KEY(id))'
         }
 
@@ -263,7 +303,7 @@ class DatabaseConnect:
         if TableName in self.show_tables(convert_to_list):
             print "Table  [%s]  Was created successfully!" % TableName
         else:
-            print "Table   [%s]   was dropped successfully " % TableName
+            print "Table   [%s]   was not created successfully " % TableName
 
 
     def verify(self,prompt):
