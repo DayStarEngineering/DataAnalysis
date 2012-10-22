@@ -5,7 +5,7 @@
 import numpy as np
 from libtiff import TIFF
 import grayconv
-from pylab import *
+import pylab as pl
 
 # ------------------------------- Load Image ---------------------------------
 # loadimg(): loads a tiff, dat, or array into memory
@@ -41,6 +41,7 @@ def loadimg(filename,arg2=None):
 
         # Uknown type    
         else:
+            print imgtype
             raise RuntimeError('Unsupported image file type for loadimg().')
     else:
         raise RuntimeError('Variable type not supported by loadimg().')
@@ -130,39 +131,79 @@ def dispimg(imgArray, viewfactor=None):
     the entire image by the viewfactor.'''    
     if type(imgArray) is np.ndarray:
         if viewfactor == None:
-            figure()
-            gray()
-            imshow(imgArray, cmap=None, norm=None, aspect=None,
+            pl.figure()
+            pl.gray()
+            pl.imshow(imgArray, cmap=None, norm=None, aspect=None,
                         interpolation='nearest', origin='upper')
-            colorbar()    
-            show()
+            pl.colorbar()    
+            pl.show()
 
         elif viewfactor != None and type(viewfactor) == int:
-            figure()
-            gray()
-            imshow(imgArray*viewfactor, cmap=None, norm=None, aspect=None,
+            pl.figure()
+            pl.gray()
+            pl.imshow(imgArray*viewfactor, cmap=None, norm=None, aspect=None,
                                     interpolation='nearest', origin='upper')
-            colorbar()    
-            show()
+            pl.colorbar()    
+            pl.show()
     else:
         raise RuntimeError('dispimg(): input must be type np.ndarray')
+
+# -----------------------------Display Image with Cenroids Cirled ------------------------------
+def circstars(imgArray,centlist,radius,color=None):
+    '''circstars(): Displays an image imgArray with circles (with specified radius) overlayed 
+    at the positions given in centlist. The standard color is red, 'r'.'''
+        
+    # check: image numpy ndarray, centlist list of tuples or lists
+    if type(imgArray) != np.ndarray:
+        raise RuntimeError('circstars(): arg 1 must be type np.ndarray')
+    
+    if type(centlist) is not tuple and type(centlist) is not list:            
+        raise RuntimeError('circstars(): arg 2 must be type list or tuple')
+    if color == None:
+        color = 'r'
+            
+    # plot the image 
+    pl.figure()
+    pl.gray()
+    pl.imshow(imgArray, cmap=None, norm=None, aspect=None,
+                interpolation='nearest', origin='upper')
+    
+    # plot circle for each centroid 
+    for pos in centlist:
+        circ = pl.Circle(pos, radius, ec=color, fill=False)
+        pl.gca().add_patch(circ)
+    
+    # actually display it
+    pl.show()
 
 
 # ----------------------------- Save Image --------------------------------------
 # saveimg(): saves list image to given path, filename as a TIF
 # filename must end with '.tif'
-def saveimg(imgArray, outfile):
-    '''saveimg(): Save a numpy ndarray image as a .tif or .fits file
+def saveimg(imgArray, outfile, viewfactor=None):
+    '''saveimg(): Save a numpy ndarray image as a .tif or .fits file.
+    viewfactor argument is an optional input
     JD, DayStar, 10/10/12'''
     
     if type(imgArray) is np.ndarray:
         if filetype(outfile) == 'tif':
-            imgArray = np.rot90(imgArray)   # have to rotate for correct orientation
-            tif = TIFF.open(outfile, mode='w')
-            tif.write_image(imgArray)
-            TIFF.close(tif)
+            if viewfactor == None:
+                imgArray = np.rot90(imgArray)   # have to rotate for correct orientation
+                tif = TIFF.open(outfile, mode='w')
+                tif.write_image(imgArray)
+                TIFF.close(tif)
+            elif viewfactor != None and type(viewfactor) == int:
+                imgArray = np.rot90(imgArray)   # have to rotate for correct orientation
+                imgArray = imgArray*viewfactor  # multiply image by viewfactor
+                tif = TIFF.open(outfile, mode='w')
+                tif.write_image(imgArray)
+                TIFF.close(tif)
+            else:
+                 raise RuntimeError('viewfactor must be type int')
+            
         elif filetype(outfile) == 'fits':
             print 'Fits not yet supported.'
+            
         else:
             raise RuntimeError('saveimg(): output filetype must be .tif or .fits')
     else:
