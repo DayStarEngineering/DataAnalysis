@@ -6,7 +6,7 @@ import sys
 import subprocess
 
 
-class RawDb(DayStarDB.DatabaseConnect):
+class Connect(DayStarDB.DatabaseConnect):
     def __init__(self):
         debug = 1
         default_table = "rawdata"
@@ -29,6 +29,7 @@ class RawDb(DayStarDB.DatabaseConnect):
             self.seed_raw_table()
         print "You are now connected to and using the DayStar RAW database   >>('DayStar')"
         print "The table you are using is    >>('rawdata')"
+        self.describe_table()
         print "Search data with things like: "
         print "                                 >>raw.find('what','where')"
         print "                                 >>raw.select('sql query')"
@@ -44,11 +45,17 @@ class RawDb(DayStarDB.DatabaseConnect):
 
     def seed_raw_table(self):
         subprocess.call(["./db/FillRawData.sh"], shell=True)
+        # Create indices on commonly queried columns
+        self.create_index('hours')
+        self.create_index('id')
+        self.create_index('time')
+        self.create_index('exposure')
+        self.create_index('gain')
 
 
     def reset_raw_db(self):
         self.drop_database('DayStar')
-        self.initialize_raw_db(self)
-        self.initialize_raw_table(self)
-        self.seed_raw_table(self)
+        self.initialize_raw_db()
+        self.initialize_raw_table()
+        self.seed_raw_table()
 
