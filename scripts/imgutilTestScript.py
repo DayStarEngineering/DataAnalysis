@@ -20,9 +20,15 @@ loadeddat = imgutil.loadimg(datpicIN)
 #imgutil.dispimg(loadedtif)
 imgutil.dispimg(loadeddat)
 
+# try out new centroids display
+cents = [(0,0),(100.0,100.0),(500.5,500.5),(700,700),(1200,1200),(1500.5,1500.5),(2000,2000)]
+radius = 50
+imgutil.circstars(loadeddat,cents,radius)
+
+
 # test new load with optional cropping
-fulldat = imgutil.loadimg(datpicIN,'full')
-imgutil.dispimg(fulldat)
+#fulldat = imgutil.loadimg(datpicIN,'full')
+#imgutil.dispimg(fulldat)
 
 # save loaded pictures
 #imgutil.saveimg(loadedtif,tifpicOUT)
