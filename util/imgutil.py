@@ -172,9 +172,9 @@ def circstars(imgArray,centlist,radius=None,color=None):
     pl.imshow(imgArray, cmap=None, norm=None, aspect=None,
                 interpolation='nearest', origin='upper')
     
-    # plot circle for each centroid 
+    # plot circle for each centroid, empty colored circle, positon has to be reversed for plotting 
     for pos in centlist:
-        circ = pl.Circle(tuple(reversed(pos)), radius, ec=color, fill=False)
+        circ = pl.Circle(tuple(reversed(pos)), radius, ec=color, fill=False) 
         pl.gca().add_patch(circ)
     
     # actually display it
