@@ -19,7 +19,7 @@ from datetime import datetime
 # Globals
 
 ROOT = '/media/'
-HD = '42C6A1602ABBB656/'
+HD = 'daystar/'
 IMGPATH = ['data/img', 'data1/img', 'data2/img']
 
 '''
@@ -30,8 +30,8 @@ IMGPATH = ['data/img', 'data2/img']
 
 DEST = '../db' + '/img_db.csv'
 
-HEADERS = ['Filename', 'Time (s)', 'Time (us)', 'Hour',
-           'Burst Number', 'Image Number', 'Gain','Exposure (ms)'] 
+HEADERS = ['Zeros', 'Root', 'Filename', 'Time (s)', 'Time (us)', 'Hour',
+           'Time of Day', 'Burst Number', 'Image Number', 'Gain','Exposure (ms)'] 
 
 # -----------------
 # --- FUNCTIONS ---
@@ -43,54 +43,12 @@ def unix2hour(unixTime):
     time = datetime.fromtimestamp(unixTime)
     hour = float(time.hour) + float(time.minute)/60 + float(time.second)/3600 + \
            float(time.microsecond)/3600000000
+    
+    timeofday = str(time.hour) + ':' + str(time.minute) + ':' + str(time.second)
        
-    return hour
+    return str(hour), timeofday
  
  
-def parseDir(root, imgpath):
-    ''' Reads all of the file names in the directory and outputs a list of strings, each of
-        which contains the values specified in HEADERS
-    '''     
-    
-    # Combine path info
-    path = root + imgpath
-    
-    # Get filenames
-    filenames = os.listdir(path)
-    
-    # Initialize output list
-    writeList = []
-    
-    for name in filenames:
-        
-        # Initialize file string
-        fields = [imgpath + '/' + name]
-        
-        # Split into components
-        name = name.replace('.dat', '')
-        name = name.replace('img_', '')
-        fields = fields + name.split('_')
-        
-        # Remove leading zeros from batch and img number
-        batch = int(fields[3])
-        fields[3] = str(int(fields[3]))
-        fields[4] = str(int(fields[4]))
-        
-        # Calculate time in hours
-        unixTime = float(fields[1]) + float(fields[2])/1000000       
-        hour = str( unix2hour( unixTime ) )
-        
-        # Add filename and time in hours to list
-        fields.insert(3, hour) # pushed batch, img number to fields[4], fields[5]
-        
-        # Add in exposure time based on batch number
-        fields.append(str(batch2exptime(batch))) # gain = fields [6], exptime = fields[7]
-        
-        # Convert to single CSV line
-        writeList.append(','.join(fields))
-
-    return writeList
-
 def batch2exptime(batch):
     '''Returns the exposure time (ms) of an image as an int based on its batch number.'''
 
@@ -148,6 +106,57 @@ def batch2exptime(batch):
     # Not a valid batch number
     else:
         raise RuntimeError('Batch number is out of bounds: 0-197.')
+ 
+ 
+def parseDir(root, imgpath):
+    ''' Reads all of the file names in the directory and outputs a list of strings, each of
+        which contains the values specified in HEADERS
+    '''     
+    
+    # Combine path info
+    path = root + imgpath
+    
+    # Get filenames
+    filenames = os.listdir(path)
+    
+    # Initialize output list
+    writeList = []
+    
+    for name in filenames:
+        
+        # Initialize file string
+        fields = [imgpath + '/' + name]
+        
+        # Split into components
+        name = name.replace('.dat', '')
+        name = name.replace('img_', '')
+        fields = fields + name.split('_')
+        
+        # Remove leading zeros from batch and img number
+        batch = int(fields[3])
+        fields[3] = str(int(fields[3]))
+        fields[4] = str(int(fields[4]))
+        
+        # Calculate time in hours
+        unixTime = float(fields[1]) + float(fields[2])/1000000       
+        hour, time = unix2hour( unixTime )
+        
+        # Add filename and time in hours to list
+        fields.insert(3, time)
+        fields.insert(3, hour) # pushes batch, img number to fields[5], fields[6] 
+        
+        # Add in exposure time based on batch number
+        fields.append(str(batch2exptime(batch))) # gain = fields [7], exptime = fields[8]
+        
+        # Insert the root directory and column of zeros
+        fields.insert(0, imgpath.replace('/img',''))
+        fields.insert(0, '0')
+        
+        # Convert to single CSV line
+        writeList.append(','.join(fields))
+
+    return writeList
+
 
 
 # ------------
@@ -169,8 +178,7 @@ def main():
         writeFile.write(line + '\n')
         
     # Close write file
-    writeFile.close()    
-    
+    writeFile.close()      
     
     return 0
     
