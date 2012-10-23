@@ -278,7 +278,7 @@ class DatabaseConnect:
                       'raw_fn VARCHAR(100) NOT NULL,'                      # Raw, unprocessed filename and path, excluding local DayStarDir
                       'seconds INT(10),'                                   # Seconds since 1970. 6 digit
                       'usec INT(6),'                                       # usec since last second
-                      'hours float(10,10),'
+                      'hours DECIMAL(10,5),'
                       'time TIME,'                                         #(hours, minutes, seconds)-insert into foo (time) values("4:54:32");, must round to nearest second
                       'burst_num INT(4),'                                  # Burst number in sequence
                       'image_num INT(5),'                                  # Image number in burst
@@ -304,6 +304,16 @@ class DatabaseConnect:
             print "Table  [%s]  Was created successfully!" % TableName
         else:
             print "Table   [%s]   was not created successfully " % TableName
+
+
+    def create_index(self,col,TableName=None):
+        if TableName is None:
+            TableName = self.default_table
+        index_sql = "CREATE INDEX %s_index ON %s (%s) USING BTREE" % (col,TableName,col)
+        if self.debug > 0:
+            print "Creating BTREE index on     %s.%s" % (TableName,col)
+        self.execute_statement(index_sql)
+
 
 
     def verify(self,prompt):
