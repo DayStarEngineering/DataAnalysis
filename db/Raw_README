@@ -1,0 +1,196 @@
+Hello!
+Welcome to the wonderful world of Databases!!! Databases are awesome, scale-able, fast, and way more powerful for
+data mining.
+
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*= PreRequisites *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+You need to have installed on your machine:
+    -Python2.7
+    -MySQLdb
+    -NumPy      (Prereq for Pandas I believe)
+    -SciPy      (Prereq for Pandas I believe)
+    -Pandas     (This is the important one)
+
+Put a file in the [/DataAnalysis] directory called "DataAnalysis_env.sh". This will likely change in the future.
+In that file, paste the following:
+            # These variables are specific to your local environment. Update for your system, and do not update in GIT.
+
+
+            # Location of my mysql executable
+            PATH=${PATH}:/usr/local/bin:/usr/local/sbin:/usr/local/mysql/bin
+
+            # Local path to DataAnalysis repo
+            export DataAnalysis="/Users/zachdischner/ZachCodeProjects/DayStar/DataAnalysis"
+
+            # Local path to raw file images
+            export RawBaseLoc="/Volumes/DayStar/RawFiles"
+
+And change all of the paths to match your local paths. This file is ignored by git. Also, it would be good to source
+this file on startup.
+I.E. in  [~/.bash_profile], add the line    [source {path}/DataAnalysis/DataAnalysis_env.sh]
+
+Voilla! Thats it!
+
+
+
+
+
+
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*= The Basics *=*==*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+Using the Raw Database in Python is cake. To do so, run python from the [/DataAnalysis] directory
+
+    DataAnalysis bash$ python2.7
+
+    python >>> import sys
+    python >>> sys.path.append('./db/')
+    python >>> import RawData               # Class Wrapper for the raw database
+    python >>> raw=RawData.Connect()        # Instantiate an object for the raw database
+
+
+Bam! If you've never done this before, it will be auto-magically setup for you (provided you followed my instructions
+and have all the correct library versions). A database called "DayStar" will be created, and under that the table
+"rawdata" will be created and populated. All hands off! The next time you startup, RawData will know that the database
+and table exists, and won't bother re-creating.
+
+Now, the "raw" object is your interface to MySQL. Use it to do all your SQL queries.
+
+*SELECT*
+    python >>> stuff=raw.select("SELECT * FROM rawdata LIMIT 5")
+
+Which yields a handy panda frame:
+    id drive                                            raw_fn     seconds    usec     hours      time  burst_num  image_num  gain  exposure
+    0   1  data  data/img/img_1348367177_458942_00132_00000_0.dat  1348367177  458942  20.43818  20:26:17        132          0     0        20
+    1   2  data  data/img/img_1348367177_560448_00132_00001_0.dat  1348367177  560448  20.43821  20:26:17        132          1     0        20
+    2   3  data  data/img/img_1348367177_661962_00132_00002_0.dat  1348367177  661962  20.43824  20:26:17        132          2     0        20
+    3   4  data  data/img/img_1348367177_763476_00132_00003_0.dat  1348367177  763476  20.43827  20:26:17        132          3     0        20
+    4   5  data  data/img/img_1348367177_865009_00132_00004_0.dat  1348367177  865009  20.43830  20:26:17        132          4     0        20
+
+Each column in "rawdata" is its own field in the data structure. So something like this is super easy:
+
+    python >>> stuff.usec.max()
+           865009
+
+If you are using a nice GUI (PyCharm), code completion will help you find all the great methods available to every
+Pandas frame, and the "raw" object.
+
+Here are some of the more useful methods:
+
+*FIND*
+    -"Hey Zach, how do I find something in the database??? Its so big!"
+    -"Dude, you just gotta 'find' it"
+
+        python >>>raw.find( What, Where, {table} )
+
+    Each argument is a SQL string. Table is optional. A default table is built into the "raw" object, so unless you need
+    to query a table other than "rawdata" don't bother with it. Ex:
+        
+        python >>>ans=raw.find("raw_fn","Gain = 1")
+        python >>>ans=raw.find("raw_fn",["Gain = 1","hours<20.51"])
+        python >>>ans=raw.find("price","ticker='aapl'",table="stock_market_table")
+
+
+
+*DESCRIBE_TABLE*
+    -"Hey Zach, I don't even know what I'm looking for! What the hell does the table even look like?"
+    -"Dude, just ask for a simple 'Description'"
+
+        python >>>raw.describe_table({TableName})
+
+    Optional table input. Default should normally work. If you want a different table description, pass it in.
+
+        python >>>raw.describe_table()
+        python >>>raw.describe_table(TableName="A_Different_Table")
+
+
+
+*SELECT_FULL_TABLE*
+    -"That sounds too hard. Can't I just make Python do all this stuff?"
+    -"Sure, just load up the whole thing"
+
+        python >>>raw.select_full_table({TableName})
+
+    Optional table input. Default should normally work. If you want a different table, pass it in.
+
+        python >>>rawdata=raw.select_full_table()
+        python >>>stocks=raw.select_full_table(TableName="StockTest")
+
+
+
+
+
+
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*= More Nitty Gritty *=*==*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+    Note-Everything you do in here, you can emulate (or do more quickly) from the MySQL prompt. Just something to
+    keep in mind.
+    1.0 The Idea
+        First thing to recognize is that the "RawData" class simply extends the "DayStarDB" class. That class has almost all
+        of the base functionality for SQL interactions. RawData basically just provides a pre-made way to use all of the
+        the functionality in DayStarDB on the "rawdata" table.
+
+        RawData initializes DayStarDB with some specific criteria. So everything that RawData does, DayStarDB can do.
+
+    2.0 Customize
+        When you play with the RawData class, you'll probably see lots of print statements, lots of SQL, lots of messages.
+        If you don't want to see any of these all you have to do is lower the "debug" level associated with the class. By
+        default, raw has the debug attribute:
+
+*DEBUG*
+            python >>> raw.debug
+                   1
+
+        You can change attributes on the fly, or just specify it at instantiation.
+
+            python >>>raw.debug = 0
+            python >>>raw=RawData.Connect(debug=0)
+
+        Other attributes can be changed in a similar way. On the fly or at instantiation. To see at any time what class
+        attributes exist, and what their values are:
+
+*CLASS_INFO*
+            python >>>raw.class_info({TableName})
+
+    3.0 Raw Resetting
+        If you ever have problems with the "rawdata" table, or the "DayStar" Database, you can reset them here.
+        Just call:
+
+*RESET_RAW_DB*
+            python >>>raw.reset_raw_db()
+
+        This method calls other methods built into RawData, which call methods in DayStarDB
+
+*INITIALIZE_RAW_DB*
+            python >>>raw.initialize_raw_db()
+*INITIALIZE_RAW_TABLE*
+            python >>>raw.initialize_raw_table()
+*SEED_RAW_TABLE*
+            python >>>raw.seed_raw_table()
+
+        These will create and fill the appropriate raw database and table.
+        *NOTE-The last calls a shell script from the '/db/'directory that sources your environment script, then pipes
+        CSV data into MySQL. I bet this will cause the most problems. So if any issues arise while seeding the table,
+        check that all your environment stuff is set up correctly.
+
+
+   4.0 SQL Utils
+        All higher up methods in these classes all boil down to simple SQL statements. The DayStarDB class holds many
+        methods that encapsulate and execute these statements. Look through "DayStarDB.py", or instantiate and ask for
+        help
+
+            python >>> help(raw)
+
+        Some notable methods are:
+
+*SHOW_DATABASES* - Show all the databases you have available
+            python >>>raw.show_databases({to_list})         #Optional, convert output to a list
+
+*SHOW_TABLES* - Show all the tables in the database you are connected to
+            python >>>raw.show_tables({to_list})         #Optional, convert output to a list
+
+*EXECUTE_STATEMENT* - Execute a generic SQL statement
+            python >>>raw.execute_statement("SELECT * FROM information_schema AS stuff")
+
+*CREATE DATABASE* - Create a Database
+            python >>>raw.create_database(DBName)
+
+*CREATE_TABLE* - Create a table.
+        Table definitions are defined here, and keyed by the "TableName" Input
+            python >>>raw.create_table(TableName)
