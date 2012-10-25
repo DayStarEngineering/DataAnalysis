@@ -58,7 +58,7 @@ def frobomad(image, thresh):
 		
 		return(m2, sd2)
 		
-def centroid(input_image, k_thresh=4, k_sigma=6, min_pix_per_star=5, max_pix_per_star=50):
+def centroid(input_image, k_thresh=3, k_sigma=3, min_pix_per_star=5, max_pix_per_star=50, oblongness=2):
     
     def findStars(limit):
     
@@ -77,7 +77,10 @@ def centroid(input_image, k_thresh=4, k_sigma=6, min_pix_per_star=5, max_pix_per
             
             # Initialize stack and star coordinates:
             stack = [(s, t)]
-            star = [((s,t),image[s,t])]
+            x = [s]
+            y = [t]
+            value = [image[s,t]]
+            #star = [((s,t),image[s,t])]
             
             # Run DFS:
             while stack:
@@ -87,15 +90,36 @@ def centroid(input_image, k_thresh=4, k_sigma=6, min_pix_per_star=5, max_pix_per
                     try:
                         if image[neighbor] > limit:
                             stack.append(neighbor)
-                            star.append((neighbor,image[neighbor]))
+                            x.append(neighbor[0])
+                            y.append(neighbor[1])
+                            value.append(image[neighbor])
+                            #star.append((neighbor,image[neighbor]))
                             image[neighbor] = 0
+                            
                     except IndexError:
 	                    continue
 		                
             # Is this blob too small or too big to be a star?
-            if len(star) < min_pix_per_star or len(star) > max_pix_per_star:
+            n = len(x)
+            if n < min_pix_per_star or n > max_pix_per_star:
                 return []
                 
+            # Is the blob round enough?
+            xsize = float(np.ptp(x))
+            ysize = float(np.ptp(y))
+            try:
+                if xsize > ysize:
+                    if xsize/ysize > oblongness:
+                        return []
+                else:
+                    if ysize/xsize > oblongness:
+                        return []
+            except ZeroDivisionError:
+                return []
+            
+            # Star is valid, form the data structure:
+            star = zip(zip(x,y),value)
+            
             return star
         
         def cog(star):
@@ -137,13 +161,23 @@ def centroid(input_image, k_thresh=4, k_sigma=6, min_pix_per_star=5, max_pix_per
     
     # Define the star limit:
     limit = mean + k_sigma*std
+    if limit < 1:
+        limit = np.mean(image) + np.std(image)
     print 'limit: ' + str(limit)
     
     # Identify stars in the frame:
     centroid_guesses = findStars(limit)
     
     # Improve our centroids on the stars found:
-
+    centroid = []
+    '''
+    for guess in centroid_guesses:
+        try:
+        print 'refining centroid: ( ' + str(guess[0]) + ', ' + str(guess[1]) + ' )'
+        cent = chzphot.cntrd(input_image,10,guess[0],guess[1])
+        print 'refined centroid:  ( ' + str(cent[0]) + ', ' + str(cent[1]) + ' )'
+        centroid.append(cent)
+    '''
     # Return the results:
     return centroid_guesses
 

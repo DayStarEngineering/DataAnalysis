@@ -15,6 +15,7 @@ import script_setup
 ###################################################################################
 from analysis import centroid as centroid
 from util import imgutil as imgutil
+from util import submethods as subm
 #import matplotlib.pyplot as plt
 
 ###################################################################################
@@ -22,6 +23,7 @@ from util import imgutil as imgutil
 ###################################################################################
 image = imgutil.loadimg('/home/kevin/Desktop/img_1348368011_459492_00146_00000_1.dat')
  
+image = subm.colmeansub(image)
 centroids = centroid.centroid(image)
 
 imgutil.dispimg(image,5)
