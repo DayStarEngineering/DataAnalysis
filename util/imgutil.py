@@ -149,7 +149,7 @@ def dispimg(imgArray, viewfactor=None):
         raise RuntimeError('dispimg(): input must be type np.ndarray')
 
 # -----------------------------Display Image with Cenroids Cirled ------------------------------
-def circstars(imgArray,centlist,radius,color=None):
+def circstars(imgArray,centlist,radius=None,color=None):
     '''circstars(): Displays an image imgArray with circles (with specified radius) overlayed 
     at the positions given in centlist. The standard color is red, 'r'.'''
         
@@ -157,10 +157,14 @@ def circstars(imgArray,centlist,radius,color=None):
     if type(imgArray) != np.ndarray:
         raise RuntimeError('circstars(): arg 1 must be type np.ndarray')
     
-    if type(centlist) is not tuple and type(centlist) is not list:            
+    if type(centlist[0]) is not tuple and type(centlist[0]) is not list:            
         raise RuntimeError('circstars(): arg 2 must be type list or tuple')
+    
+    # set defaults 
     if color == None:
         color = 'r'
+    if radius == None:
+        radius = 10 # default radius
             
     # plot the image 
     pl.figure()
@@ -168,9 +172,9 @@ def circstars(imgArray,centlist,radius,color=None):
     pl.imshow(imgArray, cmap=None, norm=None, aspect=None,
                 interpolation='nearest', origin='upper')
     
-    # plot circle for each centroid 
+    # plot circle for each centroid, empty colored circle, positon has to be reversed for plotting 
     for pos in centlist:
-        circ = pl.Circle(pos, radius, ec=color, fill=False)
+        circ = pl.Circle(tuple(reversed(pos)), radius, ec=color, fill=False) 
         pl.gca().add_patch(circ)
     
     # actually display it

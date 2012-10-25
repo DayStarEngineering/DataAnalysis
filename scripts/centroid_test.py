@@ -15,9 +15,14 @@ import script_setup
 ###################################################################################
 from analysis import centroid as centroid
 from util import imgutil as imgutil
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 ###################################################################################
 # Main
 ###################################################################################
 image = imgutil.loadimg('/home/kevin/Desktop/img_1348368011_459492_00146_00000_1.dat')
+ 
+centroids = centroid.centroid(image)
+
+imgutil.dispimg(image,5)
+imgutil.circstars(image,centroids,25)
