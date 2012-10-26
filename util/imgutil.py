@@ -4,7 +4,6 @@
 
 import numpy as np
 from libtiff import TIFF
-import grayconv
 import pylab as pl
 
 # ------------------------------- Load Image ---------------------------------
@@ -50,14 +49,13 @@ def loadimg(filename,arg2=None):
 # ----- loadimg() supporting functions ---------
 
 # graycode
-def gimg2bimg(imgArray):
-    rows = len(imgArray)
-    cols = len(imgArray[0])
-    
-    for row in xrange(0,rows):
-        for col in xrange(0,cols):    
-            imgArray[row][col] = grayconv.g2btable[imgArray[row][col]]
+def gimg2bimg(imgArray,numbits=11):
+    for i in xrange(1,numbits):
+        imgArray = np.bitwise_xor(imgArray,np.right_shift(imgArray,i))
     return imgArray
+
+def bimg2gimg(imgArray):
+    return np.bitwise_xor(np.right_shift(imgArray,1),imgArray)
 
 # check image file type
 def filetype(file):
@@ -81,7 +79,6 @@ def loaddat(filename):
     data = np.fromfile(fileopen, pixT, nPix)# load the data following the header
     data.shape = (ydim, xdim)               # reshape the data stream as a 2-D array
     data = cropimg(data)                    # crop image to 2160x2560
-    data = data*32                          # scale 11 bit uints to 16 bit for diplaying
     data = gimg2bimg(data)                  # gray to binary conversion
     fileopen.close
     return data
@@ -103,7 +100,6 @@ def loadfulldat(filename):
     
     data = np.fromfile(fileopen, pixT, nPix)# load the data following the header
     data.shape = (ydim, xdim)               # reshape the data stream as a 2-D array
-    data = data*32                          # scale 11 bit uints to 16 bit for diplaying
     data = gimg2bimg(data)                  # gray to binary conversion
     fileopen.close
     return data
@@ -126,27 +122,18 @@ def cropimg(imgArray):
     return img
 
 # -----------------------------Display Image-------------------------------------
-def dispimg(imgArray, viewfactor=None):
+def dispimg(imgArray, viewfactor=1):
     '''dispimg(): uses pylab, imshow to display a numpy ndarray. viewfactor multiplies
     the entire image by the viewfactor.'''    
-    if type(imgArray) is np.ndarray:
-        if viewfactor == None:
-            pl.figure()
-            pl.gray()
-            pl.imshow(imgArray, cmap=None, norm=None, aspect=None,
-                        interpolation='nearest', vmin=0, vmax=65535, origin='upper')
-            pl.colorbar()    
-            pl.show()
-
-        elif viewfactor != None and type(viewfactor) == int:
-            pl.figure()
-            pl.gray()
-            pl.imshow(imgArray*viewfactor, cmap=None, norm=None, aspect=None,
-                                    interpolation='nearest', vmin=0, vmax=65535, origin='upper')
-            pl.colorbar()    
-            pl.show()
-    else:
-        raise RuntimeError('dispimg(): input must be type np.ndarray')
+    try:
+        pl.figure()
+        pl.gray()
+        pl.imshow(np.multiply(imgArray,viewfactor), cmap=None, norm=None, aspect=None, \
+                                interpolation='nearest', vmin=0, vmax=2048, origin='upper')
+        pl.colorbar()  
+        pl.show()
+    except: 
+        raise RuntimeError('dispimg(): input must be type np.ndarray and viewfactor must be an int')
 
 # -----------------------------Display Image with Cenroids Cirled ------------------------------
 def circstars(imgArray,centlist,radius=None,color=None):
@@ -170,7 +157,7 @@ def circstars(imgArray,centlist,radius=None,color=None):
     pl.figure()
     pl.gray()
     pl.imshow(imgArray, cmap=None, norm=None, aspect=None,
-                interpolation='nearest', vmin=0, vmax=65535, origin='upper')
+                interpolation='nearest', vmin=0, vmax=2048, origin='upper')
     
     
     # plot circle for each centroid, empty colored circle, positon has to be reversed for plotting 
@@ -214,8 +201,25 @@ def saveimg(imgArray, outfile, viewfactor=None):
     else:
         raise RuntimeError('saveimg(): input must be type np.ndarray')
     
+def main():
+    # Load stuff:
+    import time
+    
+    # Load the image:
+    tic = time.clock()
+    image = loadimg('/home/kevin/Desktop/img_1348368011_459492_00146_00000_1.dat')
+    toc = time.clock()
+    
+    print 'Load time: ' + str(toc - tic) + ' s'
+
+    # Display image:
+    dispimg(image,1)
 
 
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+    
 
 
 
