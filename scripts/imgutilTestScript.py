@@ -18,7 +18,7 @@ loadeddat = imgutil.loadimg(datpicIN)
 
 # display loaded dat
 #imgutil.dispimg(loadedtif)
-#imgutil.dispimg(loadeddat)
+imgutil.dispimg(loadeddat)
 
 # try out new centroids display
 cents = [(0,0),(100.0,100.0),(500.5,500.5),(700,1700),(1200,1200),(1500.5,1500.5),(2000,2000)]
