@@ -32,7 +32,7 @@ def fMAD(image):
 
     return(m, s)
 
-def frobomad(image, thresh):
+def frobomad(image, thresh=3):
     '''
     Fast and robust estimation of the mean and absolute value of an image.
     Uses fMAD and the histogram median method for speed.
@@ -58,9 +58,9 @@ def frobomad(image, thresh):
 		
 		return(m2, sd2)
 		
-def centroid(input_image, k_thresh=3, k_sigma=3, min_pix_per_star=5, max_pix_per_star=50, oblongness=2):
+def findstars(input_image, k_thresh=3, k_sigma=3, min_pix_per_star=5, max_pix_per_star=50, oblongness=2, mean=None, std=None, debug=False):
     
-    def findStars(limit):
+    def _findStars(limit):
     
         def dfs((s,t)):
         
@@ -154,30 +154,33 @@ def centroid(input_image, k_thresh=3, k_sigma=3, min_pix_per_star=5, max_pix_per
     
     # Get the robust mean and standard deviation:
     tic = time.clock()
-    mean,std = frobomad(image,k_thresh)
+    if mean is None or std is None:
+        robomean,robostd = frobomad(image,k_thresh)
+    if mean is None:
+        mean = robomean 
+    if std is None:
+        std = robostd
     toc = time.clock()
-    print 'frobomad: ' + str(toc - tic)
-    print 'robust mean: ' + str(mean) + ' robust std: ' + str(std)
+    
+    if debug:
+        print 'frobomad: ' + str(toc - tic) + ' s'
+        print 'robust mean: ' + str(mean) + ' robust std: ' + str(std)
     
     # Define the star limit:
     limit = mean + k_sigma*std
     if limit < 1:
-        limit = np.mean(image) + np.std(image)
-    print 'limit: ' + str(limit)
+        limit = 1
+    if debug:
+        print 'limit: ' + str(limit)
     
     # Identify stars in the frame:
-    centroid_guesses = findStars(limit)
+    tic = time.clock()
+    centroid_guesses = _findStars(limit)
+    toc = time.clock()
     
-    # Improve our centroids on the stars found:
-    centroid = []
-    '''
-    for guess in centroid_guesses:
-        try:
-        print 'refining centroid: ( ' + str(guess[0]) + ', ' + str(guess[1]) + ' )'
-        cent = chzphot.cntrd(input_image,10,guess[0],guess[1])
-        print 'refined centroid:  ( ' + str(cent[0]) + ', ' + str(cent[1]) + ' )'
-        centroid.append(cent)
-    '''
+    if debug:
+        print 'find stars: ' + str(toc - tic) + ' s'
+    
     # Return the results:
     return centroid_guesses
 
