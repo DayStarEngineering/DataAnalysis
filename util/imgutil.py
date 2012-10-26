@@ -136,7 +136,7 @@ def dispimg(imgArray, viewfactor=1):
         raise RuntimeError('dispimg(): input must be type np.ndarray and viewfactor must be an int')
 
 # -----------------------------Display Image with Cenroids Cirled ------------------------------
-def circstars(imgArray,centlist,radius=None,color=None):
+def circstars(imgArray,centlist,radius=None,color=None,viewfactor=1):
     '''circstars(): Displays an image imgArray with circles (with specified radius) overlayed 
     at the positions given in centlist. The standard color is red, 'r'.'''
         
@@ -156,13 +156,13 @@ def circstars(imgArray,centlist,radius=None,color=None):
     # plot the image 
     pl.figure()
     pl.gray()
-    pl.imshow(imgArray, cmap=None, norm=None, aspect=None,
+    pl.imshow(np.multiply(imgArray,viewfactor), cmap=None, norm=None, aspect=None,
                 interpolation='nearest', vmin=0, vmax=2048, origin='upper')
     
     
     # plot circle for each centroid, empty colored circle, positon has to be reversed for plotting 
     for pos in centlist:
-        circ = pl.Circle(tuple(reversed(pos)), radius, ec=color, fill=False) 
+        circ = pl.Circle(tuple(pos), radius, ec=color, fill=False)
         pl.gca().add_patch(circ)
     
     # actually display it
