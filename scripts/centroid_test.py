@@ -15,14 +15,25 @@ import script_setup
 ###################################################################################
 from analysis import centroid as centroid
 from util import imgutil as imgutil
-#import matplotlib.pyplot as plt
+from util import submethods as subm
 
 ###################################################################################
 # Main
 ###################################################################################
+# Load the image:
 image = imgutil.loadimg('/home/kevin/Desktop/img_1348368011_459492_00146_00000_1.dat')
- 
-centroids = centroid.centroid(image)
 
+# Get a good estimation for the background level and variance:
+(mean,std) = centroid.frobomad(image)
+
+# Do column subtraction:
+image = subm.colmeansub(image)
+
+# Find star centroids:
+centroids = centroid.findstars(image,std=std,debug=True)
+
+# Display image:
 imgutil.dispimg(image,5)
+
+# Display image with stars circled:
 imgutil.circstars(image,centroids,25)

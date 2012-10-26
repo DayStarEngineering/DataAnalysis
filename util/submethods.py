@@ -125,6 +125,86 @@ def colmeansub(imgArray):
         raise RuntimeError('numpy ndarray input required. Try using loadimg() first.')
         
     
+# ----------------------- Column 2 Sigma Subtraction ----------------------
+def colsigsub(imgArray):
+
+    if type(imgArray) == np.ndarray:
+        if imgArray.shape == (2160,2560):
+            # useful index numbers
+            TRstart = 0          # image rows top start
+            TRend = 1080         # image rows top end
+            BRstart = TRend   # image rows bottom start
+            BRend = 2160      # image rows bottom start 
+            Cstart = 0          # columns of dark rows start
+            Cend = 2560  # columns of dark rows end
+            
+            sigmult = 2 # 2 sigma
+            
+            # allocate arrays 
+            topAvgs = np.ones((1,2560),dtype=np.uint16)
+            bottAvgs = np.ones((1,2560),dtype=np.uint16)
+
+            # top and bottom column average in simga range
+            print 'getting sigma averages...'
+            for col in range(Cstart,Cend):
+                
+                print 'getting col', col, 'mean and std...'
+                
+                topcol = imgArray[TRstart:TRend][:,col:col+1]
+                bottcol = imgArray[BRstart:BRend][:,col:col+1]
+                
+                topmean = int(np.average(topcol))
+                bottmean = int(np.average(bottcol))
+                topstd = int(np.std(topcol))
+                bottstd = int(np.std(bottcol))
+                
+                # if in sigma range, add to array
+                topsum = 0
+                bottsum = 0
+                topcount = 0
+                bottcount = 0
+                
+                print 'getting col', col, 'mean in', sigmult, 'sigma range...'
+                
+                for row in range(0,1080): 
+                    if topcol[row][0] in range(topmean-sigmult*topstd, topmean+sigmult*topstd+1):
+                        topsum = topsum + int(topcol[row][0])
+                        topcount = topcount + 1
+                    if bottcol[row][0] in range(bottmean-sigmult*bottstd, bottmean+sigmult*bottstd+1):
+                        bottsum = bottsum + int(bottcol[row][0])
+                        bottcount = bottcount + 1
+
+                # average applicable values
+                topAvgs[0][col] = topsum/topcount
+                bottAvgs[0][col] = bottsum/bottcount
+            
+            # subtract for columns of top image area
+            print 'subtracting averages...'
+            def subtract_uint16(a, b):
+                '''Subtraction to avoid overflow problems and negatives. If the difference a-b 
+                is less than 0 it is assigned the value 0.'''
+                A = int(a) # signed int32
+                B = int(b) # signed int32
+                if A-B < 0:
+                    return (np.uint16(0)) # return 0
+
+                else:
+                    return (a-b)
+            
+            for col in xrange(Cstart,Cend):
+                for row in xrange(TRstart,TRend):
+                    imgArray[row][col] = subtract_uint16(imgArray[row][col], topAvgs[0][col])
+                for row in xrange(BRstart,BRend):
+                    imgArray[row][col] = subtract_uint16(imgArray[row][col], bottAvgs[0][col])
+            
+            # return subtracted image
+            return imgArray
+
+        else:   
+           raise RuntimeError('colsigsub(): image must be 2160x2560')                
+    else:
+        raise RuntimeError('numpy ndarray input required. Try using loadimg() first.')
+        
         
         
         

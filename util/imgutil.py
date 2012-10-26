@@ -134,7 +134,7 @@ def dispimg(imgArray, viewfactor=None):
             pl.figure()
             pl.gray()
             pl.imshow(imgArray, cmap=None, norm=None, aspect=None,
-                        interpolation='nearest', origin='upper')
+                        interpolation='nearest', vmin=0, vmax=65535, origin='upper')
             pl.colorbar()    
             pl.show()
 
@@ -142,7 +142,7 @@ def dispimg(imgArray, viewfactor=None):
             pl.figure()
             pl.gray()
             pl.imshow(imgArray*viewfactor, cmap=None, norm=None, aspect=None,
-                                    interpolation='nearest', origin='upper')
+                                    interpolation='nearest', vmin=0, vmax=65535, origin='upper')
             pl.colorbar()    
             pl.show()
     else:
@@ -170,7 +170,8 @@ def circstars(imgArray,centlist,radius=None,color=None):
     pl.figure()
     pl.gray()
     pl.imshow(imgArray, cmap=None, norm=None, aspect=None,
-                interpolation='nearest', origin='upper')
+                interpolation='nearest', vmin=0, vmax=65535, origin='upper')
+    
     
     # plot circle for each centroid, empty colored circle, positon has to be reversed for plotting 
     for pos in centlist:
