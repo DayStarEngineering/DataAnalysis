@@ -1,9 +1,44 @@
+#
+# File name: centroid.py
+# Authors: Nick Truesdale, Kevin Dinkel
+# Edited: 10/25/2012
+#
+# Description: This file contains functions for locating stars in an image and finding
+# their centroids. The main script  
+#
+# Function List:
+#   hist_median(image)
+#   fMAD(image)
+#   frobomad(image, thresh=3)
+#   findstars(input_image, k_thresh=3, k_sigma=3, min_pix_per_star=5, max_pix_per_star=50, 
+#             oblongness=2, mean=None, std=None, debug=False)
+#   iwcentroid(...)
+#   gcentroid
+
+# -------------------------
+# --- IMPORT AND GLOBAL ---
+# -------------------------
+
+# Enable import from other dirs in DataAnalysis
+import sys
+sys.path.append("../")
+
+# Addtl imports for main script
+from util import imgutil as imgutil
+from util import submethods as subm
+
+# Imports for functions
 import chzphot as chzphot
 import numpy as np
 import copy as cp
 import time
 
-    
+
+
+# -----------------
+# --- FUNCTIONS ---
+# -----------------
+
 def hist_median(image):
     ''' 
     Histogram median finding method. A faster median finding
@@ -20,7 +55,8 @@ def hist_median(image):
         ind += 1
     
     return float(ind-1)
-    
+
+#-----------------------------------------------------------------------------------------------    
 def fMAD(image):
     ''' 
     Returns the Medians and Median Absolute Deviation of an array
@@ -32,6 +68,7 @@ def fMAD(image):
 
     return(m, s)
 
+#-----------------------------------------------------------------------------------------------
 def frobomad(image, thresh=3):
     '''
     Fast and robust estimation of the mean and absolute value of an image.
@@ -58,6 +95,7 @@ def frobomad(image, thresh=3):
 		
 		return(m2, sd2)
 		
+#-----------------------------------------------------------------------------------------------
 def findstars(input_image, k_thresh=3, k_sigma=3, min_pix_per_star=5, max_pix_per_star=50, oblongness=2, mean=None, std=None, debug=False):
     
     def _findStars(limit):
@@ -184,4 +222,143 @@ def findstars(input_image, k_thresh=3, k_sigma=3, min_pix_per_star=5, max_pix_pe
     # Return the results:
     return centroid_guesses
 
+#-----------------------------------------------------------------------------------------------
+def iwcentroid(frame, (x0,y0), p=2):
+    '''
+    IWC is Intensity Weighted Centroiding. The method calculates the center of mass of
+    the star defined by the coordinates (x0,y0) in the subset of the image defined by 
+    frame. The integer p is the intensity weight; p=2 is the default, p=1 would be the
+    normal center of mass. 
+    '''
+         
+     
+    # Get indices of subframe
+    X,Y = indices(frame.shape)
 
+    # Get values of subframe and raise them to the p
+    values = image[ylow:yhi, xlow:xhi]**p
+    valsum = values.sum()
+    
+    # Weighted center of mass
+    xf = (X*values).sum() / valsum + xlow
+    yf = (Y*values).sum() / valsum + ylow
+    
+    return (xf,yf)
+
+#-----------------------------------------------------------------------------------------------
+def gcentroid(image, (x0,y0), radius, width):
+    '''
+    Uses the two center coordinates of a Gaussian fit as the centroid estimate.
+      p = (amp, xcenter, ycenter, xwidth, ywidth) 
+    '''
+    
+    
+    width_x = sqrt(abs((arange(col.size)-y)**2*col).sum()/col.sum())
+    width_y = sqrt(abs((arange(row.size)-x)**2*row).sum()/row.sum())
+
+    
+    # Initial guess for Gaussian parameters
+    guess = (frame.max(), x0, y0, width, width) 
+    
+    # Error function
+    errfun = lambda p: ravel(gaussian(*p)(*indices(frame.shape)) - frame)
+    
+    
+    # Optimize with least squares fit
+    p, success = sci.optimize.leastsq(errfun, guess)
+    (_, xf, yf, _, _) = p
+    
+    
+    return (xf,yf)
+
+#-----------------------------------------------------------------------------------------------
+def gaussian(amp, xcent, ycent, wx, wy):
+    '''
+    Returns a G(x,y), where G is a Gaussian defined by the amplitude, x/y 
+    center values, and x/y widths.
+    '''
+    wx = float(wx)
+    wy = float(wy) 
+    
+    return lambda x,y: amp*exp(-(((xcent-x)/wx)**2+((ycent-y)/wy)**2)/2)
+
+
+#-----------------------------------------------------------------------------------------------
+def subframe(image, (x0,y0), width):
+    '''
+    This function takes an image and, given a star location and radius, finds the indices
+    for the subframe that surrounds the star without going outside the image boundaries.
+    '''
+    
+    # Radius from center
+    radius = 0.5*width
+    
+    # Image boundaries
+    (xbound, ybound) = image.shape
+    
+    print (xbound, ybound)
+    
+    # Calculate boundaries
+    xlow = np.floor(x0 - radius)
+    ylow = np.floor(y0 - radius)
+    xhi = np.ceil(x0 + radius)
+    yhi = np.ceil(y0 + radius)
+
+    print (xlow, xhi, ylow, yhi)
+
+    # Ensure boundaries lie within image
+    if xlow < 0: xlow = 0
+    if ylow < 0: ylow = 0
+    if xhi > xbound: xhi = xbound
+    if yhi > xbound: yhi = ybound
+     
+    # Define frame from indices
+    frame = image[ylow:yhi, xlow:xhi]
+     
+    return frame, (xlow, ylow)
+
+# ------------
+# --- MAIN ---
+# ------------
+
+def main():
+
+    import sys
+    sys.path.append("../")
+
+    # Load the image:
+    image = imgutil.loadimg('/home/sticky/Daystar/img_1348368011_459492_00146_00000_1.dat')
+    
+    # Get a good estimation for the background level and variance:
+    (mean,std) = frobomad(image)
+
+    # Do column subtraction:
+    image = subm.colmeansub(image)
+
+    # Find star centroids:
+    centroids = findstars(image,std=std,debug=True)
+
+    # Use the first centroid to test
+    for each in centroids:
+        print each
+       
+    (y0, x0) = centroids[1]
+    frame, (xf,yf) = subframe(image, (x0,y0), 14)
+    
+    print frame
+
+    # Display image:
+    imgutil.dispimg(image,5)
+
+    # Display image with stars circled:
+    #imgutil.circstars(image,centroids,25)
+    
+    return 0
+    
+    
+# -------------------
+# --- Run as Main --- 
+# -------------------
+if __name__ == "__main__":
+	sys.exit(main())
+	
