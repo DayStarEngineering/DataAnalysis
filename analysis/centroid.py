@@ -69,7 +69,7 @@ def fMAD(image):
     return(m, s)
 
 #-----------------------------------------------------------------------------------------------
-def frobomad(image, thresh=3):
+def frobomad(image, zvalue=3):
     '''
     Fast and robust estimation of the mean and absolute value of an image.
     Uses fMAD and the histogram median method for speed.
@@ -84,20 +84,20 @@ def frobomad(image, thresh=3):
     else:
     
 		#STEP 2: Identify outliers, recompute mean and std with pixels that remain.
-		gdPix = np.where(abs(image - m) < thresh*sd)
+		gdPix = np.where(abs(image - m) < zvalue*sd)
 		m1 = np.mean(image[gdPix])
 		sd1 = np.std(image[gdPix])
 		
 		#STEP 3: Repeat step 2 with new mean and sdev values.
-		gdPix = np.where(abs(image - m1) < (thresh*sd1))
+		gdPix = np.where(abs(image - m1) < (zvalue*sd1))
 		m2 = np.mean(image[gdPix])
 		sd2 = np.std(image[gdPix])
 		
 		return(m2, sd2)
 		
 #-----------------------------------------------------------------------------------------------
-def findstars(input_image, k_thresh=3, k_sigma=3, min_pix_per_star=5, max_pix_per_star=50, oblongness=2, mean=None, std=None, debug=False):
-    
+def findstars(input_image, zreject=3, zthresh=3, min_pix_per_star=6, max_pix_per_star=50, oblongness=1.5, mean=None, std=None, debug=False):
+
     def _findStars(limit):
     
         def dfs((s,t)):
@@ -119,7 +119,7 @@ def findstars(input_image, k_thresh=3, k_sigma=3, min_pix_per_star=5, max_pix_pe
             y = [t]
             value = [image[s,t]]
             #star = [((s,t),image[s,t])]
-            
+
             # Run DFS:
             while stack:
                 pixel = stack.pop()
@@ -155,10 +155,7 @@ def findstars(input_image, k_thresh=3, k_sigma=3, min_pix_per_star=5, max_pix_pe
             except ZeroDivisionError:
                 return []
             
-            # Star is valid, form the data structure:
-            star = zip(zip(x,y),value)
-            
-            return star
+            return zip(zip(y,x),value)
         
         def cog(star):
             xi = np.array([float(p[0][0]) for p in star])
@@ -167,9 +164,10 @@ def findstars(input_image, k_thresh=3, k_sigma=3, min_pix_per_star=5, max_pix_pe
             n = sum(wi)
             xc = sum(xi*wi)/n
             yc = sum(yi*wi)/n
-            return (xc,yc)
+            wx = np.ptp(xi)
+            wy = np.ptp(yi)
+            return (xc,yc),(wx,wy)
     
-       
         star_centers = []
         cnt = 0
         tic = time.clock()
@@ -193,7 +191,7 @@ def findstars(input_image, k_thresh=3, k_sigma=3, min_pix_per_star=5, max_pix_pe
     # Get the robust mean and standard deviation:
     tic = time.clock()
     if mean is None or std is None:
-        robomean,robostd = frobomad(image,k_thresh)
+        robomean,robostd = frobomad(image,zreject)
     if mean is None:
         mean = robomean 
     if std is None:
@@ -205,7 +203,7 @@ def findstars(input_image, k_thresh=3, k_sigma=3, min_pix_per_star=5, max_pix_pe
         print 'robust mean: ' + str(mean) + ' robust std: ' + str(std)
     
     # Define the star limit:
-    limit = mean + k_sigma*std
+    limit = mean + zthresh*std
     if limit < 1:
         limit = 1
     if debug:
