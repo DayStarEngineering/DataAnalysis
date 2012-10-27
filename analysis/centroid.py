@@ -59,13 +59,40 @@ def frobomad(image, zvalue=3):
 		return(m2, sd2)
 		
 def findstars(input_image, zreject=3, zthresh=3, min_pix_per_star=6, max_pix_per_star=50, oblongness=1.5, mean=None, std=None, debug=False):
-
-    def _findStars(limit):
+    '''
+    Given an image, this function will return a set of approximate star centers and their widths in the following form:
     
+    [((x1_center,y1_center),(x1_width,y1_width)), 
+     ((x2_center,y2_center),(x2_width,y2_width)), ... etc. ] 
+    
+    There are many optional parameters that you can provide to aid in the star
+    finding process:
+             zreject = any pixel values > zreject*sigma, will be discarded from the background 
+                       estimation as outliers. sigma (std of image) is calculated with frobomad
+             zthresh = any pixel values < zthresh*sigma will be regarded as too dim to be part of a star
+    min_pix_per_star = minimum # of pixels you consider to be in a valid star
+    max_pix_per_star = maximum # of pixels you consider to be in a valid star
+          oblongness = xwidth/ywidth of bright blob must be < oblongness to be considered a valid star
+                       (ywidth is numerator if bigger), this makes sure stars are round
+                mean = use this mean as the robust estimation for the background instead of calculating it
+                 std = use this standard deviation as the robust estimateion for the background standard deviation
+                       instead of calculating it
+    '''
+    def _findStars(limit):
+    '''
+    Find stars based on calculated background limit.
+    '''
         def dfs((s,t)):
-        
+        '''
+        Run depth first search on a bright pixel at coordinates (s,t). We explore
+        around a bright pixel to see if we have a star.
+        '''
             # Neighborhood generator:
             def neighbors((i, j)):
+            '''
+            This generator yields the location of the next dfs neighbor around a pixel
+            located at (i,j)
+            '''
                 yield (i+1,j)
                 yield (i+1,j-1)
                 yield (i,j-1)
@@ -120,6 +147,11 @@ def findstars(input_image, zreject=3, zthresh=3, min_pix_per_star=6, max_pix_per
             return zip(zip(y,x),value)
         
         def cog(star):
+        '''
+        Internal intensity weighted center of gravity method. This is used to find the 
+        approximate center of a star.
+        '''
+        
             xi = np.array([float(p[0][0]) for p in star])
             yi = np.array([float(p[0][1]) for p in star])
             wi = np.array([float(p[1]) for p in star])
