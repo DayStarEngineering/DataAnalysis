@@ -19,21 +19,13 @@
 # --- IMPORT AND GLOBAL ---
 # -------------------------
 
-# Enable import from other dirs in DataAnalysis
-import sys
-sys.path.append("../")
-
-# Addtl imports for main script
-from util import imgutil as imgutil
-from util import submethods as subm
-
 # Imports for functions
+import sys
 import chzphot as chzphot
 import numpy as np
+import scipy as sci
 import copy as cp
 import time
-
-
 
 # -----------------
 # --- FUNCTIONS ---
@@ -221,99 +213,124 @@ def findstars(input_image, zreject=3, zthresh=3, min_pix_per_star=6, max_pix_per
     return centroid_guesses
 
 #-----------------------------------------------------------------------------------------------
-def iwcentroid(frame, (x0,y0), p=2):
+def imgcentroid(image, centers, method="iwc"):
+    '''
+    This function uses one of the centroiding methods to improve the list of centroids
+    given by centers in the given image.
+    '''
+    
+    # Initialize list of refined centroids
+    star_list = []
+    
+    for star in centers:
+        (centroid, width) = star           
+        
+        # Use the first centroid to test      
+        (frame, (xframe,yframe), frame_centroid) = subframe(image, centroid, width)
+                        
+        # Get centroid
+        if method is "cog":
+            (xstar,ystar) = iwcentroid(frame, 1)
+        elif method is "iwc":
+            (xstar,ystar) = iwcentroid(frame, 2)
+        elif method is "gauss":
+            (xstar,ystar) = gcentroid(frame, frame_centroid)
+        else:
+            raise RuntimeError("Bad method. Choices are ""cog"", ""iwc"" and  ""gauss""") 
+        
+        star_list.append( (xstar + xframe, ystar + yframe) )
+        
+    return star_list        
+                
+#-----------------------------------------------------------------------------------------------
+def iwcentroid(frame, p=2):
     '''
     IWC is Intensity Weighted Centroiding. The method calculates the center of mass of
     the star defined by the coordinates (x0,y0) in the subset of the image defined by 
     frame. The integer p is the intensity weight; p=2 is the default, p=1 would be the
     normal center of mass. 
-    '''
-         
+    '''   
      
     # Get indices of subframe
-    X,Y = indices(frame.shape)
+    Y,X = np.indices(frame.shape)
 
     # Get values of subframe and raise them to the p
-    values = image[ylow:yhi, xlow:xhi]**p
+    values = frame**p
     valsum = values.sum()
     
     # Weighted center of mass
-    xf = (X*values).sum() / valsum + xlow
-    yf = (Y*values).sum() / valsum + ylow
+    xf = (X*values).sum() / valsum
+    yf = (Y*values).sum() / valsum
     
     return (xf,yf)
 
 #-----------------------------------------------------------------------------------------------
-def gcentroid(image, (x0,y0), radius, width):
+def gcentroid(frame, (x0,y0)):
     '''
     Uses the two center coordinates of a Gaussian fit as the centroid estimate.
       p = (amp, xcenter, ycenter, xwidth, ywidth) 
     '''
     
-    
-    width_x = sqrt(abs((arange(col.size)-y)**2*col).sum()/col.sum())
-    width_y = sqrt(abs((arange(row.size)-x)**2*row).sum()/row.sum())
-
+    # Estimate Gaussian width
+    row = frame[int(x0),:]
+    col = frame[:,int(y0)]
+    xwidth = np.sqrt( abs( (np.arange(col.size)-y0)**2*col ).sum()/col.sum() )
+    ywidth = np.sqrt( abs( (np.arange(row.size)-x0)**2*row ).sum()/row.sum() )
     
     # Initial guess for Gaussian parameters
-    guess = (frame.max(), x0, y0, width, width) 
+    guess = (frame.max(), x0, y0, xwidth, ywidth) 
     
     # Error function
-    errfun = lambda p: ravel(gaussian(*p)(*indices(frame.shape)) - frame)
-    
+    errfun = lambda p: np.ravel(gaussian(*p)(*np.indices(frame.shape)) - frame)
     
     # Optimize with least squares fit
     p, success = sci.optimize.leastsq(errfun, guess)
     (_, xf, yf, _, _) = p
-    
     
     return (xf,yf)
 
 #-----------------------------------------------------------------------------------------------
 def gaussian(amp, xcent, ycent, wx, wy):
     '''
-    Returns a G(x,y), where G is a Gaussian defined by the amplitude, x/y 
+    Returns a function G(x,y), where G is a Gaussian defined by the amplitude, x/y 
     center values, and x/y widths.
-    '''
-    wx = float(wx)
-    wy = float(wy) 
-    
-    return lambda x,y: amp*exp(-(((xcent-x)/wx)**2+((ycent-y)/wy)**2)/2)
-
+    '''  
+    return lambda y,x: amp*np.exp( -0.5*( ((xcent-x)/wx)**2 + ((ycent-y)/wy)**2 ) )
 
 #-----------------------------------------------------------------------------------------------
-def subframe(image, (x0,y0), width):
+def subframe(image, (x0,y0), (xwidth, ywidth), scale=1):
     '''
-    This function takes an image and, given a star location and radius, finds the indices
-    for the subframe that surrounds the star without going outside the image boundaries.
-    '''
-    
-    # Radius from center
-    radius = 0.5*width
-    
+    This function takes an image and, given a star location and te width of the light 
+    pattern, finds the subframe that surrounds the star without going outside the image
+    boundaries.
+    '''    
     # Image boundaries
-    (xbound, ybound) = image.shape
-    
-    print (xbound, ybound)
-    
-    # Calculate boundaries
-    xlow = np.floor(x0 - radius)
-    ylow = np.floor(y0 - radius)
-    xhi = np.ceil(x0 + radius)
-    yhi = np.ceil(y0 + radius)
+    (ybound, xbound) = image.shape
+        
+    # Width to use
+    xw = int(scale*xwidth)
+    yw = int(scale*ywidth)
 
-    print (xlow, xhi, ylow, yhi)
-
+    # Calculate boundaries (upper boundary is one greater than actual index)
+    xlow = int(x0) - xw
+    ylow = int(y0) - yw
+    xhi = int(x0) + xw + 1
+    yhi = int(y0) + yw + 1
+    
     # Ensure boundaries lie within image
     if xlow < 0: xlow = 0
     if ylow < 0: ylow = 0
     if xhi > xbound: xhi = xbound
-    if yhi > xbound: yhi = ybound
+    if yhi > ybound: yhi = ybound
      
     # Define frame from indices
     frame = image[ylow:yhi, xlow:xhi]
+    
+    # Define centroid coordinates relative to the frame
+    xcent = x0 - xlow
+    ycent = y0 - ylow
      
-    return frame, (xlow, ylow)
+    return frame, (xlow, ylow), (xcent, ycent)
 
 # ------------
 # --- MAIN ---
@@ -321,12 +338,16 @@ def subframe(image, (x0,y0), width):
 
 def main():
 
-    import sys
+    # Enable import from other dirs in DataAnalysis
     sys.path.append("../")
+
+    # Addtl imports for main script
+    from util import imgutil as imgutil
+    from util import submethods as subm
 
     # Load the image:
     image = imgutil.loadimg('/home/sticky/Daystar/img_1348368011_459492_00146_00000_1.dat')
-    
+        
     # Get a good estimation for the background level and variance:
     (mean,std) = frobomad(image)
 
@@ -335,21 +356,29 @@ def main():
 
     # Find star centroids:
     centroids = findstars(image,std=std,debug=True)
-
-    # Use the first centroid to test
+    
+    # Refine centroids using three methods 
+    iwc = imgcentroid(image, centroids, "iwc")
+    gauss = imgcentroid(image, centroids, "gauss")
+    
+    print "---"
     for each in centroids:
         print each
-       
-    (y0, x0) = centroids[1]
-    frame, (xf,yf) = subframe(image, (x0,y0), 14)
     
-    print frame
-
+    print "---"
+        
+    for each in iwc:
+        print each
+        
+    print "---"
+    for each in gauss:
+        print each 
+      
     # Display image:
     imgutil.dispimg(image,5)
 
     # Display image with stars circled:
-    #imgutil.circstars(image,centroids,25)
+    imgutil.circstars(image,iwc + gauss,1)
     
     return 0
     
