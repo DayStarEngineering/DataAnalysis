@@ -1,6 +1,7 @@
 #
 # File name: centroid.py
-# Authors: Nick Truesdale, Kevin Dinkel
+# Authors: Kevin Dinkel, Nick Truesdale
+# Created: 10/15/2012
 # Edited: 10/25/2012
 #
 # Description: This file contains functions for locating stars in an image and finding
@@ -21,9 +22,9 @@
 
 # Imports for functions
 import sys
-import chzphot as chzphot
 import numpy as np
 import scipy as sci
+from scipy import optimize
 import copy as cp
 import time
 
@@ -109,20 +110,20 @@ def findstars(input_image, zreject=3, zthresh=3, min_pix_per_star=6, max_pix_per
                        instead of calculating it
     '''
     def _findStars(limit):
-    '''
-    Find stars based on calculated background limit.
-    '''
+        '''
+        Find stars based on calculated background limit.
+        '''
         def dfs((s,t)):
-        '''
-        Run depth first search on a bright pixel at coordinates (s,t). We explore
-        around a bright pixel to see if we have a star.
-        '''
+            '''
+            Run depth first search on a bright pixel at coordinates (s,t). We explore
+            around a bright pixel to see if we have a star.
+            '''
             # Neighborhood generator:
             def neighbors((i, j)):
-            '''
-            This generator yields the location of the next dfs neighbor around a pixel
-            located at (i,j)
-            '''
+                '''
+                This generator yields the location of the next dfs neighbor around a pixel
+                located at (i,j)
+                '''
                 yield (i+1,j)
                 yield (i+1,j-1)
                 yield (i,j-1)
@@ -177,10 +178,10 @@ def findstars(input_image, zreject=3, zthresh=3, min_pix_per_star=6, max_pix_per
             return zip(zip(y,x),value)
         
         def cog(star):
-        '''
-        Internal intensity weighted center of gravity method. This is used to find the 
-        approximate center of a star.
-        '''
+            '''
+            Internal intensity weighted center of gravity method. This is used to find the 
+            approximate center of a star.
+            '''
         
             xi = np.array([float(p[0][0]) for p in star])
             yi = np.array([float(p[0][1]) for p in star])
@@ -378,7 +379,7 @@ def main():
     from util import submethods as subm
 
     # Load the image:
-    image = imgutil.loadimg('/home/sticky/Daystar/img_1348368011_459492_00146_00000_1.dat')
+    image = imgutil.loadimg('/home/kevin/Desktop/img_1348368011_459492_00146_00000_1.dat')
         
     # Get a good estimation for the background level and variance:
     (mean,std) = frobomad(image)
