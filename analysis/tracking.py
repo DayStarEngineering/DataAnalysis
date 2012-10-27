@@ -14,6 +14,9 @@ import sys
 def test_highpass():
     signal=noisy_sin()
     signal2=high_pass(signal,plot=1)
+    pylab.title('Brick Wall Filtering')
+    nil=high_pass(signal,plot=1,lfilt=1)
+    pylab.title('SciPy "lfilt" filtering. Just guesswork')
     return signal, signal2
 
 # Return list of arrays of quaternions. Taken from spring semester processing attempts
@@ -28,7 +31,7 @@ def noisy_sin():
     xs=np.arange(1,100,.05)     #generate Xs (0.00,0.01,0.02,0.03,...,100.0)
     signal=np.sin(xs)
     signal2=np.sin(xs*.2)
-    noise= (np.random.random_sample((len(xs)))-.5)
+    noise= (np.random.random_sample((len(xs))))
 
     return signal + signal2 + noise
 
@@ -51,24 +54,25 @@ def quat_to_roll_pitch_yaw(quaternions):
 
 
 # Get rid of low frequency occurances in 'rotations'. Single array of rotations.
-# For now, just get rid of bottom 25%
+# For now, just get rid anything below 10 Hz
 
 # Returns inverse raw series with the low frequencies filtered out
 # lfilt - experimenting with scipy.signal.lfilt method
-def high_pass(series,sampling_frequency=1,plot=None,lfilt=None):
+def high_pass(series,cutoff=100,sampling_frequency=1,plot=None,lfilt=None):
     # Filter the Power?
     power = power_spectrum(series,sampling_frequency=sampling_frequency)
     power_filt = power.copy()
 
     if lfilt is None:
-        for ii in range(0, len(power)/4):
-            power_filt[ii] = 0.0
-            power_filt[len(power) - ii -1] = 0.0
+        for ii in range(0, len(power)):
+            if ii <cutoff:
+                power_filt[ii] = 0.0
+                power_filt[len(power) - ii -1] = 0.0
     else:  # Doesn't really work
-        power_filt=signal.lfilter([0,0,0,0,0,.3,.5,.9,1,1,1,1,1,1],[1],power)
+        power_filt=signal.lfilter([0,0,0,.5,1,1,1,1,1,1,1,1,1,1,.5,0,0,0],[1],power)
 
     # Inverse fourrier. Get new filtered signal back
-    new_series = np.fft.ifft(power)
+    new_series = np.fft.irfft(power_filt)
 
     if plot is not None:
         pylab.figure(num=None, figsize=(13, 7), dpi=80, facecolor='w', edgecolor='k')
@@ -95,8 +99,6 @@ def high_pass(series,sampling_frequency=1,plot=None,lfilt=None):
         pylab.ylabel('Filtered Power')
 
 
-
-
     return np.fft.ifft(power)
 
 
@@ -109,10 +111,11 @@ def power_spectrum(series,sampling_frequency=1):
     # Get sampling frequency
     Fs = 1/sampling_frequency
 
-    freq=np.fft.fft(series)
+    freq=np.fft.rfft(series)
     power=freq*np.conj(freq)
 #    power=power[range(len(power)/2)]
     return power
+
 
 
 #Plot a series' power spectrum. Do something like:
@@ -121,8 +124,7 @@ def power_spectrum(series,sampling_frequency=1):
 #In [96]: tracking.plot_power(sin(10*th))
 #
 #In [97]: tracking.plot_power(sin(50*th))
-#
-# optional 'power' input, if it has been calculated before.
+# where 'th' is an array
 def plot_power(series,sampling_frequency=1):
     t=sp.arange(0,len(series))/(1.0*sampling_frequency)
     pylab.subplot(2,1,1)
@@ -164,46 +166,6 @@ def plot_freq(series,sampling_frequency=1):
 
 
 
-
-
-
-#from numpy import sin, linspace, pi
-#from pylab import plot, show, title, xlabel, ylabel, subplot
-#from scipy import fft, arange
-#
-#def plotSpectrum(y,Fs):
-#    """
-#    Plots a Single-Sided Amplitude Spectrum of y(t)
-#    """
-#    n = len(y) # length of the signal
-#    k = arange(n)
-#    T = n/Fs
-#    frq = k/T # two sides frequency range
-#    frq = frq[range(n/2)] # one side frequency range
-#
-#    Y = fft(y)/n # fft computing and normalization
-#    Y = Y[range(n/2)]
-#
-#    plot(frq,abs(Y),'r') # plotting the spectrum
-#    xlabel('Freq (Hz)')
-#    ylabel('|Y(freq)|')
-#
-#Fs = 150.0;  # sampling rate
-#Ts = 1.0/Fs; # sampling interval
-#t = arange(0,1,Ts) # time vector
-#
-#ff = 5;   # frequency of the signal
-#y = sin(2*pi*ff*t)
-#
-#
-#
-#subplot(2,1,1)
-#plot(t,y)
-#xlabel('Time')
-#ylabel('Amplitude')
-#subplot(2,1,2)
-#plotSpectrum(y,Fs)
-#show()
 
 
 
