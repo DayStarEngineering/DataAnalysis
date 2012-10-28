@@ -17,6 +17,7 @@ import sys
 sys.path.append('../')
 
 from numpy import *
+import time
 
 # Globals
 
@@ -155,8 +156,12 @@ def main():
     
     # Quaternion
     q_actual = array( [0.2643, -0.0051, 0.4706, 0.8418] )
+    
+    t1 = time.time()
     q_calc = qmethod(vi, vb)
+    t2 = time.time()
     q_quest = quest(vi, vb)
+    t3 = time.time()
     
     R_calc = quat2rot(q_calc)
     R_quest = quat2rot(q_quest)
@@ -167,7 +172,11 @@ def main():
     print q_quest
     print ''
     print R_calc
+    print ''
     print R_quest
+    print ''
+    print 'Q Method takes: ' + str( (t2 - t1)*1000)
+    print 'QUEST takes: ' + str( (t3 - t2)*1000)
     
     return 0
     
