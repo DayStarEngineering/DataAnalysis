@@ -27,6 +27,7 @@ import scipy as sci
 from scipy import optimize
 import copy as cp
 import time
+import submethods as sm
 
 # -----------------
 # --- FUNCTIONS ---
@@ -259,15 +260,17 @@ def imgcentroid(image, centers, method="iwc"):
         (centroid, width) = star           
         
         # Use the first centroid to test      
-        (frame, (xframe,yframe), frame_centroid) = subframe(image, centroid, width)
-                        
+        (frame, (xframe,yframe), frame_centroid) = sm.windowsub(image, centroid, width, neg=True, scale=1)
+                                
         # Get centroid
         if method is "cog":
+            frame[(frame < 0).nonzero()] = 0
             (xstar,ystar) = iwcentroid(frame, 1)
         elif method is "iwc":
+            frame[(frame < 0).nonzero()] = 0
             (xstar,ystar) = iwcentroid(frame, 2)
         elif method is "gauss":
-            (xstar,ystar) = gcentroid(frame, frame_centroid)
+            (xstar,ystar), success = gcentroid(frame, frame_centroid)
         else:
             raise RuntimeError("Bad method. Choices are ""cog"", ""iwc"" and  ""gauss""") 
         
@@ -288,9 +291,9 @@ def iwcentroid(frame, p=2):
     Y,X = np.indices(frame.shape)
 
     # Get values of subframe and raise them to the p
-    values = frame**p
+    values = np.float64(frame)**p
     valsum = values.sum()
-    
+        
     # Weighted center of mass
     xf = (X*values).sum() / valsum
     yf = (Y*values).sum() / valsum
@@ -320,7 +323,9 @@ def gcentroid(frame, (x0,y0)):
     p, success = sci.optimize.leastsq(errfun, guess)
     (_, xf, yf, _, _) = p
     
-    return (xf,yf)
+    if success != 1: print "Warning - Gaussian fit may have failed"
+    
+    return (xf,yf), success
 
 #-----------------------------------------------------------------------------------------------
 def gaussian(amp, xcent, ycent, wx, wy):
@@ -379,20 +384,22 @@ def main():
     from util import submethods as subm
 
     # Load the image:
-    image = imgutil.loadimg('/home/kevin/Desktop/img_1348368011_459492_00146_00000_1.dat')
+    image = imgutil.loadimg('/home/sticky/Daystar/img_1348368011_459492_00146_00000_1.dat')
         
     # Get a good estimation for the background level and variance:
     (mean,std) = frobomad(image)
 
     # Do column subtraction:
-    image = subm.colmeansub(image)
+    #image = subm.colmeansub(image)
 
     # Find star centroids:
     centroids = findstars(image,std=std,debug=True)
-    
-    # Refine centroids using three methods 
+      
+          
+    # Refine centroids using two methods 
     iwc = imgcentroid(image, centroids, "iwc")
     gauss = imgcentroid(image, centroids, "gauss")
+    
     
     print "---"
     for each in centroids:
@@ -406,12 +413,13 @@ def main():
     print "---"
     for each in gauss:
         print each 
+    
       
     # Display image:
-    imgutil.dispimg(image,5)
+    #imgutil.dispimg(image,5)
 
     # Display image with stars circled:
-    imgutil.circstars(image,iwc + gauss,1)
+    #imgutil.circstars(image,iwc + gauss,1)
     
     return 0
     

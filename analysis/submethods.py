@@ -9,14 +9,14 @@ import copy as cp
 
 # ----------- unit16 subtraction ---------------
 def subtract_uint16(a, b):
-                '''Subtraction to avoid overflow problems and negatives. If the difference a-b 
-                is less than 0 it is assigned the value 0.'''
-                A = int(a) # signed int32
-                B = int(b) # signed int32
-                if A-B < 0:
-                    return (np.uint16(0)) # return 0
-                else:
-                    return (a-b)
+    '''Subtraction to avoid overflow problems and negatives. If the difference a-b 
+    is less than 0 it is assigned the value 0.'''
+    A = int(a) # signed int32
+    B = int(b) # signed int32
+    if A-B < 0:
+        return (np.uint16(0)) # return 0
+    else:
+        return (a-b)
 
 
 # ----------------------- Dark Column Subtraction ----------------------
@@ -217,121 +217,90 @@ def colsigsub(imgArray):
         
 
 # ----------------------------- Window Subtraction ---------------------------------    
-def windowsub(image,(x,y),(w,h)):
+def windowsub(image,(x,y),(w,h), scale=1.5, sigma=2, neg=False):
     '''windowsub(): Returns the subtracted image window around a star and the location of the
     top left corner of the window.'''
     
-    # spans top & bottonm halves - get medians and subtract from separate halves
+    # spans top & bottom halves - get medians and subtract from separate halves
     # on left or right side - return what's possible
     # on top or bottom  - return what's possible 
-    if x not in range(0,2560) or y not in range(0,2160):
+    
+    # image size
+    (ysize, xsize) = image.shape
+    middle = int(ysize/2)
+    
+    # ensure centroid is in image
+    if x > xsize-1 or y > ysize-1:
         raise RuntimeError('Invalid star position (x,y)')
     
-    img = cp.deepcopy(image)
+    # copy image
+    img = cp.deepcopy(image)  
     
+    # Widths to use
+    w = int(scale*w)
+    h = int(scale*h)
     
-    # assume x,y,w,h are ints
     # window area for subtraction and returning:
-    windowL = x-(w+w/2) 
-    windowR = x+(w+w/2)
-    windowT = y-(h+h/2) 
-    windowB = y+(h+h/2)
+    windowL = int(x) - w
+    windowR = int(x) + w + 1
+    windowT = int(y) - h 
+    windowB = int(y) + h + 1
     
-    if windowL < 0:
-        windowL = 0
-    if windowR > 2560-1:
-        windowR = 2560-1
-    if windowT < 0:
-        windowT = 0
-    if windowB > 2160-1:
-        windowB = 2160-1
+    if windowL < 0: windowL = 0
+    if windowR > xsize: windowR = xsize
+    if windowT < 0: windowT = 0
+    if windowB > ysize: windowB = ysize
             
     # top search area
     TL = windowL
     TR = windowR
-    if windowT-2*h < 0:
-        TT = 0
-    else:
-        TT = windowT-2*h
+    TT = windowT - 2*h
     TB = windowT
+    
+    if TT < 0: TT = 0
     
     # bottom search area
     BL = windowL
     BR = windowR
     BT = windowB
-    if windowB+2*h > 2160-1:
-        BB = 2160-1
-    else:        
-        BB = windowB+2*h
+    BB = windowB + 2*h
+
+    if BB > ysize: BB = ysize
+        
+    # define window from image
+    window = np.int16(img[windowT:windowB, windowL:windowR])
     
-    sigma = 2
-    
-    # if window on just one half
-    colmed = []
-    if BB <=1079 or TT > 1079: # search and window area completely on top or bottom half
-        print "window and seach areas on single half"
-        searchT = img[TT:TB+1][TL:TR+1]
-        searchB = img[BT:BB+1][BL:BR+1]
-        search = np.vstack((searchT,searchB)) 
-        window = img[windowT:windowB+1][:,windowL:windowR+1]
-
-        for col in range(windowL,windowR+1):            
-            colm,s = chzphot.robomad(search[:][:,col:col+1],sigma)
-            window[:][:,col:col+1] = window[:][:,col:col+1] - colm
-
-        return (window, (windowL,windowT), (windowL-x,y-windowT))
-
-
     # if window on both halves    
-        # use top and bottom halve independently for cols, 
-        # subtract seperately in parts of window 
-    if 1079 in range(windowT,windowB+1) or 1080 in range(windowT,windowB+1):
-        print "window on both halves"
-        searchT = cp.deepcopy(image[TT:TB+1][TL:TR+1])
-        searchB = cp.deepcopy(image[BT:BB+1][BL:BR+1])
-        rowsT,cols = searchT.shape
-        rowsB,cols = searchB.shape
-        window = image[windowT:windowB+1][:,windowL:windowR+1]
+    # use top and bottom halve independently for cols, 
+    # subtract seperately in parts of window 
+    if windowT < middle and windowB >= middle:
+        searchT = cp.deepcopy( image[TT:TB, TL:TR] )
+        searchB = cp.deepcopy( image[BT:BB, BL:BR] )
+        rowsT = searchT.shape[0]
+        rowsB = searchB.shape[0]
         
-        for col in range(0,cols):
-            colmT,s = chzphot.robomad(searchT[:][:,col],sigma)
-            colmB,s = chzphot.robomad(searchB[:][:,col],sigma)
-            window[windowT:1079+1][:,col:col+1] = window[windowT:1079+1][:,col:col+1] - colmT # top
-            window[1080:windowB+1][:,col:col+1] = window[1080:windowB+1][:,col:col+1] - colmB # bottom
+        for col in range(0, window.shape[1]):
+            colmT,s = chzphot.robomad(searchT[:,col], sigma)
+            colmB,s = chzphot.robomad(searchB[:,col], sigma)
+            window[windowT:middle][:,col] -= colmT # top
+            window[middle:windowB][:,col] -= colmB # bottom
+            
+    # window is on a single half
+    else:
+        # Check that the search zones are in the same half
+        if middle-1 in range(TT,TB): TT = middle     
+        if middle in range(BT,BB): BB = middle-1
         
-        return (window, (windowL,windowT), (windowL-x,y-windowT))
-            
-            
-    # if search area spans both halves modify search area before getting median of cols
-    # top search area
-    if 1079 in range(TT,TB+1):
-        print "top search area spans both halves"
-        TT = 1080
-        searchT = image[TT:TB+1][TL:TR+1]
-        searchB = image[BT:BB+1][BL:BR+1]
+        searchT = img[TT:TB, TL:TR]
+        searchB = img[BT:BB, BL:BR]
         search = np.vstack((searchT,searchB)) 
-        window = image[windowT:windowB+1][:,windowL:windowR+1]
-           
-        for col in range(windowL,windowR+1):
-            colm,s = chzphot.robomad(search[:][:,col:col+1],sigma)
-            window[windowT:windowB+1][:,col:col+1] = window[windowT:windowB+1][:,col:col+1] - colm
+
+        for col in range(0, window.shape[1]):            
+            colm,s = chzphot.robomad(search[:,col], sigma)
+            window[:, col] -= colm
+    
+    # Remove negative values
+    if neg is False:  window[(window < 0).nonzero()] = 0
             
-        return (window, (windowL,windowT), (windowL-x,y-windowT))
-        
-    # bottom search area
-    if 1080 in range(BT,BB+1):
-        print "bottom search area spans both halves"
-        BB = 1079
-        searchT = image[TT:TB+1][TL:TR+1]
-        searchB = image[BT:BB+1][BL:BR+1]
-        search = np.vstack((searchT,searchB)) 
-        window = image[windowT:windowB+1][:,windowL:windowR+1]
-           
-        for col in range(windowL,windowR+1):
-            colm,s = chzphot.robomad(search[:][:,col:col+1],sigma)
-            window[windowT:windowB+1][:,col:col+1] = window[windowT:windowB+1][:,col:col+1] - colm
-            
-        return (window, (windowL,windowT), (windowL-x,y-windowT))
-            
-            
+    return (window, (windowL, windowT), (x - windowL, y - windowT))        
           
