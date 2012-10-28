@@ -6,40 +6,90 @@ import transformations as transform
 import scipy as sp
 from scipy import signal
 import matplotlib
-#from pylab import plot, show, title, xlabel, ylabel, subplot,figure
 import pylab as pylab
+import math
 import sys
+
+
+
+def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=None):
+    """
+        Purpose: Find the variance of a set of quaternions. Low Frequency components are assumed to be invalid
+                 and will be discarded. Intended for analyzing high-frequency variations in a set of rotation
+                 quaternions, specifically for the DayStar platform.
+        Inputs: quaternions - List of quaternion arrays, formatted 'SXYZ' I think.
+                delta_t - Time between quaternion observations [s]. Assumed (and must be) uniform for all frames
+                motion_frequency - The frequency of motion that we wish to filter out.
+                plot - Optional keyword, generate plots of the fourrier filterig as we do it, to see how the signal
+                       changes
+        Outputs: var - The computed variance of all observations. Meant to be some indication of DayStar performance
+    """
+    [r,p,y]=quat2rpy(quaternions)
+    r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot)     #radians
+    p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot)     #radians
+    y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot)     #radians
+
+    obs_std = np.sqrt(np.std(r_filt)**2 + np.std(p_filt)**2 + np.std(y_filt)**2)    #Standard deviation
+
+    var = 3600*(obs_std*180/math.pi)**2         # arcseconds
+
+    return var
+
+
 
 # Simple routine to test the effectiveness of the highpass filter
 def test_highpass():
+    """ Simple routine to test the highpass filtering scheme.
+        Just call, and it will perform all testing.
+    """
     signal=noisy_sin()
-    signal2=high_pass(signal,plot=1)
+    signal2=high_pass(signal,cutoff=0.1,delta=1,plot=1)
     pylab.title('Brick Wall Filtering')
     nil=high_pass(signal,plot=1,lfilt=1)
     pylab.title('SciPy "lfilt" filtering. Just guesswork')
     return signal, signal2
 
-# Return list of arrays of quaternions. Taken from spring semester processing attempts
+
 def sample_quats():
+    """
+        Purpose: Load a list of sample quaternions. Quaternions come from spring semester ground testing with
+                 Andor camera.
+        Inputs: None
+        Outputs: quats-a list of quaternion arrays
+    """
     tmp=np.loadtxt(open("./analysis/quats.csv","rb"),delimiter=",",skiprows=0)
     quats=[]
     for ii in range(tmp.size/4-1):
-        quats.append([tmp[0][ii],tmp[1][ii],tmp[2][ii],tmp[3][ii]])
+        quats.append([tmp[3][ii],tmp[1][ii],tmp[2][ii],tmp[0][ii]])
     return quats
 
+
+
 def noisy_sin():
+    """
+        Purpose: Load a sample noisy sin data set
+        Inputs: None
+        Outputs: signal-a noisy, overlaid sin computation array
+    """
     xs=np.arange(1,100,.05)     #generate Xs (0.00,0.01,0.02,0.03,...,100.0)
     signal=np.sin(xs)
     signal2=np.sin(xs*.2)
     noise= (np.random.random_sample((len(xs))))
 
-    return signal + signal2 + noise
-
+    return (signal + signal2 + noise)
 
 
 
 # Convert a list of arrays of quaternions to arrays of corresponding roll, pitch, and yaw values.
-def quat_to_roll_pitch_yaw(quaternions):
+def quat2rpy(quaternions):
+    """
+        Purpose: Convert a list of arrays of quaternions to Euler angles (roll,pitch,yaw)
+        Inputs: quaternions - list of quaternion arrays. In the form of 'SXYZ' I THINK?!?!?
+        Outputs: r,p,y - separate roll, pitch, and yaw vectors
+        Can test with:
+            >>>quats=tfdat /= abs(fdat).max()racking.sample_quats()
+            >>>[r,p,y]=tracking.quat2rpy(quats)
+    """
     roll=[]
     pitch=[]
     yaw=[]
@@ -53,26 +103,37 @@ def quat_to_roll_pitch_yaw(quaternions):
 
 
 
-# Get rid of low frequency occurances in 'rotations'. Single array of rotations.
-# For now, just get rid anything below 10 Hz
+def high_pass(series,cutoff=100,delta=1,plot=None,lfilt=None):
+    """
+        Purpose: High-pass filter a single array series using fourrier transforms.
+        Inputs: series-an array of observations to filter (i.e) lots of angle measurements
+                cutoff-(optional) Specify cutoff frequency [HZ]
+                delta-(optional) time between observations [s]
+                plot-(optional) Plot the results of this op in an awesome way
+                lfilt-(optional) Try a Scipy.signal.lfilt filter. Just experimental for now
+        Outputs: new_series-the new series, with low frequency changes filtered out
+    """
+#    power = power_spectrum(series,sampling_frequency=sampling_frequency)
+    ns =len(series)     # number of samples
 
-# Returns inverse raw series with the low frequencies filtered out
-# lfilt - experimenting with scipy.signal.lfilt method
-def high_pass(series,cutoff=100,sampling_frequency=1,plot=None,lfilt=None):
-    # Filter the Power?
-    power = power_spectrum(series,sampling_frequency=sampling_frequency)
-    power_filt = power.copy()
+    cutoff_freq=cutoff*(ns*delta)   # Index of cutoff frequency in this new awesome frequency domain
+#    cutoff_freq=100
+
+    fft_series = np.fft.rfft(series)
+    fft_filt = fft_series.copy()
+
 
     if lfilt is None:
-        for ii in range(0, len(power)):
-            if ii <cutoff:
-                power_filt[ii] = 0.0
-                power_filt[len(power) - ii -1] = 0.0
+
+        for ii in range(0, len(fft_filt)):
+            if ii <cutoff_freq:
+                fft_filt[ii] = 0.0
+                fft_filt[len(fft_filt) - ii -1] = 0.0
     else:  # Doesn't really work
-        power_filt=signal.lfilter([0,0,0,.5,1,1,1,1,1,1,1,1,1,1,.5,0,0,0],[1],power)
+        fft_filt=signal.lfilter([0,0,0,.5,1,1,1,1,1,1,1,1,1,],[1],fft_series)
 
     # Inverse fourrier. Get new filtered signal back
-    new_series = np.fft.irfft(power_filt)
+    new_series = np.fft.irfft(fft_filt)
 
     if plot is not None:
         pylab.figure(num=None, figsize=(13, 7), dpi=80, facecolor='w', edgecolor='k')
@@ -89,31 +150,35 @@ def high_pass(series,cutoff=100,sampling_frequency=1,plot=None,lfilt=None):
 
         #fourrier signal
         pylab.subplot(2,2,2)
-        pylab.plot(power)
+        pylab.plot(fft_series)
         pylab.xlabel('Freq (Hz)')
         pylab.ylabel('Original Power')
 
         pylab.subplot(2,2,4)
-        pylab.plot(power_filt)
+        pylab.plot(fft_filt)
         pylab.xlabel('Freq (Hz)')
         pylab.ylabel('Filtered Power')
 
-
-    return np.fft.ifft(power)
-
+    return new_series
 
 
 
 
 
-# Compute power spectrum of a series.
 def power_spectrum(series,sampling_frequency=1):
+    """
+        Purpose: Compute power spectrum of a data series
+        Inputs: series-An array of data to compute the power spectrum for
+                sampling_frequency-(optional) IDK what for yet
+        Outputs: power-the computed power spectrum
+    """
     # Get sampling frequency
     Fs = 1/sampling_frequency
 
     freq=np.fft.rfft(series)
     power=freq*np.conj(freq)
-#    power=power[range(len(power)/2)]
+    power=power[range(len(power)/2)]
+    power /= abs(power).max()        #Normalize to 1
     return power
 
 
@@ -126,6 +191,12 @@ def power_spectrum(series,sampling_frequency=1):
 #In [97]: tracking.plot_power(sin(50*th))
 # where 'th' is an array
 def plot_power(series,sampling_frequency=1):
+    """
+        Purpose: Illustrate the power spectrum calculation for a given data series
+        Inputs: series-A data array to show the power spectrum for. Calls power_spectrum
+                sampling_frequency-(optional) IDK what for yet
+        Outputs: none
+    """
     t=sp.arange(0,len(series))/(1.0*sampling_frequency)
     pylab.subplot(2,1,1)
     pylab.plot(t,series)
@@ -142,6 +213,12 @@ def plot_power(series,sampling_frequency=1):
 
 # I think LESS USEFUL than the above, "plot_power"
 def plot_freq(series,sampling_frequency=1):
+    """
+        Purpose: Illustrate the power spectrum calculation for a given data series
+        Inputs: series-A data array to show the power spectrum for. Calls power_spectrum
+                sampling_frequency-(optional) IDK what for yet
+        Outputs: none
+    """
     t=sp.arange(0,len(series))/(1.0*sampling_frequency)
     pylab.subplot(2,1,1)
     pylab.plot(t,series)
