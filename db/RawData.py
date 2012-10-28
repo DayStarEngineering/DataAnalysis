@@ -6,9 +6,9 @@ import sys
 import subprocess
 
 
-class Connect(DayStarDB.DatabaseConnect):
+class Connect(DayStarDB.DatabaseConnect,debug=1):
     def __init__(self):
-        debug = 1
+        debug=self.debug
         default_table = "rawdata"
         DayStarDB.DatabaseConnect.__init__(self,environment='rawdata',debug=debug,default_table=default_table) # Instantiate the class
 

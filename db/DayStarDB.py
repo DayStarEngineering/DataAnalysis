@@ -14,68 +14,78 @@ import sys                      # System utils
 import pandas.io.sql as psql    # AWESOME wrapper for MySQL. Builds on MySQLdb, and makes SELECTing and sorting data easy.
 
 
-#*^*^*^*^*^*^*^*^ Class ^*^*^*^*^*^*^*^* DatabaseConnect *^*^*^*^*^*^* Class *^*^*^*^*^*^*^*^*
-#
-#   Purpose: This class contains all database connectivity and interaction functionality.
-#            For now, it is a mix of general utils and code specific to DayStar
-#
-#   Inputs: {env} -string (optional)- The environment to use. This is set at the class level, as
-#                   many subroutines will rely on this class attribute. Default is set to the
-#                   most used envitonment
-#           {default_table} -string (optional)- The default table to perform all queries on. Methods
-#                   will make use this attribute when no table input is provided. Useful for work with
-#                   only a single table.
-#           {debug} -int (optional)- Set to higher values to enable more print/debugging statements.
-#
-#   Outputs: {} -obj- an object instantiation of this class
-#
-#   Usage  : >>> import DayStarDB as DayStar
-#            >>> db = Daystar.DatabaseConnect(test=2,environment='rawdata')
-#
-#<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>
+
 
 class DatabaseConnect:
+    """
+    #*^*^*^*^*^*^*^*^ Class ^*^*^*^*^*^*^*^* DatabaseConnect *^*^*^*^*^*^* Class *^*^*^*^*^*^*^*^*
+    #
+    #   Purpose: This class contains all database connectivity and interaction functionality.
+    #            For now, it is a mix of general utils and code specific to DayStar
+    #
+    #   Inputs: {env} -string (optional)- The environment to use. This is set at the class level, as
+    #                   many subroutines will rely on this class attribute. Default is set to the
+    #                   most used envitonment
+    #           {default_table} -string (optional)- The default table to perform all queries on. Methods
+    #                   will make use this attribute when no table input is provided. Useful for work with
+    #                   only a single table.
+    #           {debug} -int (optional)- Set to higher values to enable more print/debugging statements.
+    #
+    #   Outputs: {} -obj- an object instantiation of this class
+    #
+    #   Usage  : >>> import DayStarDB as DayStar
+    #            >>> db = Daystar.DatabaseConnect(test=2,environment='rawdata')
+    #
+    #<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>
+    """
     def __init__(self, environment='stock_test',default_table='stock_test',debug=1):
         self.env = environment
         self.debug=debug
         self.default_table=default_table
 
 
-    #*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^* class_info *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*
-    #
-    #   Purpose: Print out all class attributes. Gives insight into current class defaults
-    #
-    #   Inputs:  {} None
-    #
-    #   Outputs: {} No variable return. Just print statements in the python window
-    #
-    #   Usage  : >>> import DayStarDB as DayStar
-    #            >>> db = Daystar.DatabaseConnect({optional specs})
-    #            >>> db.class_info()
-    #
-    #<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>
+
     def class_info(self):
+        """
+        #*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^* class_info *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*
+        #
+        #   Purpose: Print out all class attributes. Gives insight into current class defaults
+        #
+        #   Inputs:  {} None
+        #
+        #   Outputs: {} No variable return. Just print statements in the python window
+        #
+        #   Usage  : >>> import DayStarDB as DayStar
+        #            >>> db = Daystar.DatabaseConnect({optional specs})
+        #            >>> db.class_info()
+        #
+        #<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>
+        """
         atts=self.__dict__
         keys=atts.keys()
         print "Class Attributes Are:"
         for key in keys:
             print key," ==> ",atts[key]
 
-    #*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^* MySQLconnect *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*
-    #
-    #   Purpose: Simple function, provide a mysql connection to the caller
-    #
-    #   Inputs: {env} -string- The environment to connect to. I.E. 'test','development', ect
-    #
-    #   Outputs: {con} -obj- A database connection object(?). With it, connect to, update, and retrive
-    #                       data from the database, as specified by the 'env' variable.
-    #
-    #   Usage  : >>> import DayStarDB as DayStar
-    #            >>> db = Daystar.DatabaseConnect({optional specs})
-    #            >>> my_connection=db.connect('my_environment')
-    #
-    #<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>
+
     def MySQLconnect(self,env=None):
+        """
+            #*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^* MySQLconnect *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*
+        #
+        #   Purpose: Simple function, provide a mysql connection to the caller
+        #
+        #   Inputs: {env} -string- The environment to connect to. I.E. 'test','development', ect
+        #
+        #   Outputs: {con} -obj- A database connection object(?). With it, connect to, update, and retrive
+        #                       data from the database, as specified by the 'env' variable.
+        #
+        #   Usage  : >>> import DayStarDB as DayStar
+        #            >>> db = Daystar.DatabaseConnect({optional specs})
+        #            >>> my_connection=db.connect('my_environment')
+        #
+        #<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>
+        """
+
         if env is None:
             env = self.env
             # Homemade 'switch' statement. Connect automagically to the database environment of choice
@@ -125,20 +135,23 @@ class DatabaseConnect:
         return value
 
 
-    #*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^* select *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*
-    #
-    #   Purpose: Executes SQL 'SELECT' statement, returns value as a PANDAS frame
-    #
-    #   Inputs:  {query} -String- The SQL select query to be performed
-    #
-    #   Outputs: {value} -Pandas Frame- Results of select query in the form of a Pandas Frame
-    #
-    #   Usage  : >>> import DayStarDB as DayStar
-    #            >>> db = Daystar.DatabaseConnect({optional specs})
-    #            >>> db.select('SELECT * FROM test_table LIMIT 1')
-    #
-    #<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>
+
     def select(self,query):
+        """
+        #*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^* select *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*
+        #
+        #   Purpose: Executes SQL 'SELECT' statement, returns value as a PANDAS frame
+        #
+        #   Inputs:  {query} -String- The SQL select query to be performed
+        #
+        #   Outputs: {value} -Pandas Frame- Results of select query in the form of a Pandas Frame
+        #
+        #   Usage  : >>> import DayStarDB as DayStar
+        #            >>> db = Daystar.DatabaseConnect({optional specs})
+        #            >>> db.select('SELECT * FROM test_table LIMIT 1')
+        #
+        #<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>
+        """
         con = self.MySQLconnect(self.env)
         if self.debug:
             print query
@@ -146,13 +159,38 @@ class DatabaseConnect:
         con.close()
         return value
 
+    def insert(self,values,what=None,table=None):
+        if table is None:
+            table=self.default_table
+        #parse VALUES into a comma separated string list
+        if values.__class__ == list:
+            values = str(values)
+            values = values.replace('[','')
+            values = values.replace(']','')
+        if what is None:    #insert full row. I.E. values is an array, 1 value per table column
+            insert_sql="INSERT INTO %s VALUES(%s)" % (table,values)
+        else:           # Gotta specify the columns you are inserting.
+            what=','.join(what)
+            insert_sql="INSERT INTO %s (%s) VALUES (%s)" %(table,what,values)
+        self.execute_statement(insert_sql)
 
-    def find(self,what,where,table=None):
+    def update(self,what,where,value,table=None): #update WHAT, set it equal to VALUE where(WHERE)
+        if table is None:
+            table=self.default_table
+        if where.__class__ == list:
+            where = ' AND '.join(where)
+        update_sql="UPDATE %s SET %s=%s WHERE(%s)" % (table,what,value,where)
+        self.execute_statement(update_sql)
+
+
+    def find(self,what,where,table=None,limit=None):
         if table is None:
             table = self.default_table
         if where.__class__ == list:
             where = ' AND '.join(where)
         select_sql = 'SELECT %s FROM %s WHERE (%s)' % (what,table, where)
+        if limit is not None:
+            select_sql += ' LIMIT %s' % limit
         return self.select(select_sql)
 
 
@@ -170,6 +208,11 @@ class DatabaseConnect:
             return databases.Database.tolist()
         else:
             return databases
+
+
+
+
+
 
     def show_tables(self,to_list=0):
         show_sql="SHOW TABLES"
