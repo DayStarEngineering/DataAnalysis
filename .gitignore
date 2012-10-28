@@ -1,8 +1,14 @@
 # Local Environment specs
 DataAnalysis_env.sh
 
+# Compiled python:
 *~
 *.py[co]
+
+# Pickled objects:
+*.p
+*.pk
+*.pickle
 
 # Packages
 *.egg

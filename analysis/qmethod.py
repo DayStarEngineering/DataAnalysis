@@ -41,6 +41,9 @@ def qmethod(Vi, Vb, W=None):
     The body vectors Vi and Vb must be of size Nx3, where N is the number of
     vectors. 2D cases should set the third column to zero. 
     '''
+
+    Vi = array( Vi )
+    Vb = array( Vb )
     
     # Calculate components of K    
     S, Z, tr = qmatrices(Vi, Vb, W)
@@ -59,6 +62,9 @@ def qmethod(Vi, Vb, W=None):
 # -------------------------------------------------------------------------------
 def quest(Vi, Vb, W=None):
 
+    Vi = array( Vi )
+    Vb = array( Vb )
+    
     # Check weights
     if W is None: 
         W = ones( (Vi.shape[0], 1) )

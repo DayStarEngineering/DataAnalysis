@@ -8,7 +8,7 @@ import math
 import numpy as np
 import copy as cp
 
-def matchstars(centlistA,centlistB,searchradius = None):
+def matchstars(centlistA,centlistB,searchradius=25):
     '''starrcorr(): Returns a list of tuples containing two (x,y) touples for matched star 
     positions between frames A and B. The left (x,y) tuple is for frame A, right for frame B
     >>> a = correlateframes(centlistA,centlistB)
@@ -17,9 +17,6 @@ def matchstars(centlistA,centlistB,searchradius = None):
     
     if type(centlistA[0]) is not tuple and type(centlistB[0]) is not tuple:            
         raise RuntimeError('matchstars(): type tuple expected')
-
-    if searchradius == None:
-        searchradius = 50   # default search radius
         
     # go through list A one at a time, remove matched stars from B
     matchedlist = []
@@ -27,7 +24,7 @@ def matchstars(centlistA,centlistB,searchradius = None):
     
     for posA in centlistA:
         matchindex = matchsearch(posA,Bcopy,searchradius) # look for a match in centlistB
-        if matchindex != None: # if there's a match remove matched pos in B and continue on in A
+        if matchindex: # if there's a match remove matched pos in B and continue on in A
             matchedlist.append((posA,Bcopy[matchindex]))
             Bcopy.remove(Bcopy[matchindex])
                             
@@ -66,7 +63,7 @@ def dist(x1,x2,y1,y2):
     
 
 # ----------------- 2D to 3D ----------------------
-def project3D(centlist):
+def project3D(centlist,vpix=2160,hpix=2560,FOV=8.2,pixSize=6.5):
     '''project3D(): given list of centroid pairs ((xA,yA),(xB,yB)) matched between frames, 
     returns list of 3D tuples pairs ((xA,yA,zA),(xB,yB,zB))'''
         
@@ -77,16 +74,16 @@ def project3D(centlist):
         
         xi,yi = pos
         
-        vpix = 2160 #vertical
-        hpix = 2560 #horizontal
-        FOV = 8.2   #[deg]
+        #vpix = 2160 #vertical
+        #hpix = 2560 #horizontal
+        #FOV = 8.2   #[deg]
         
         # Pixel FOV
         # ASSUMPTION: square pixels (with cropping)
         pixfov = 3600*FOV/hpix  #[arcseconds/pixel]
 
         # CMOS size
-        pixSize = 6.5  # [microns/pixel]
+        #pixSize = 6.5  # [microns/pixel]
         d = math.sqrt(2)*hpix*pixSize # [microns]
         
         # CMOS center
@@ -98,7 +95,7 @@ def project3D(centlist):
             return a/180*math.pi
         
         f = d/2/np.tan(deg2rad(FOV/2)) # [microns]
-        
+        #print 'focal ' + str(f)
         # Convert pixel locations to vectors using LOS Vectors from image
         # matlab line:
         # v_i(:,m) = 1/sqrt(f^2 + (xp-xi(m))^2 + (yp-yi(m))^2)*[xp-xi(m); yp-yi(m); f];
@@ -113,11 +110,8 @@ def project3D(centlist):
     # main part of function
     centlist3D = []
     for pair in centlist:
-        posA = pair[0]
-        posB = pair[1] 
-        newpair = (pos2Dto3D(posA),pos2Dto3D(posB))
-        centlist3D.append(newpair)    
-    return (centlist3D)
+        centlist3D.append(pos2Dto3D(pair))
+    return centlist3D
 
 
 '''

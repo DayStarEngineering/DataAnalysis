@@ -5,18 +5,25 @@
 import numpy as np
 from libtiff import TIFF
 import pylab as pl
+import os
 
 # ------------------------------- Load Image ---------------------------------
 # loadimg(): loads a tiff, dat, or array into memory
 # returns numpy array of 16 bit integers
-def loadimg(filename,arg2=None):    
+def loadimg(filename, from_database=False, load_full=False):    
     '''loadimg(): Loads *.tif and *.dat files and returns them as numpy nmarrays.
     Requires: numpy, libtiff, and pyFITS.
     JD, DayStar, 10/10/12'''
     
     # Is it a picture?
-    if type(filename) == str:
-        
+    try:
+        if from_database:
+            daystar_root = os.environ.get('RawBaseLoc')
+            if daystar_root:
+                filename = daystar_root + '/' + filename
+            else:
+                raise RuntimeError('Your "RawBaseLoc" environment variable does not seem to be set!')
+            
         imgtype = filetype(filename) # what type of file is it?
         # TIF file type
         if (imgtype == 'tif'):   
@@ -25,7 +32,7 @@ def loadimg(filename,arg2=None):
         
         # Dat file type    
         elif (imgtype == 'dat'):
-            if arg2 == None:
+            if load_full:
                 imgout = loaddat(filename)
             else:
                 imgout = loadfulldat(filename) 
@@ -40,9 +47,8 @@ def loadimg(filename,arg2=None):
 
         # Uknown type    
         else:
-            print imgtype
-            raise RuntimeError('Unsupported image file type for loadimg().')
-    else:
+            raise RuntimeError('Unsupported image file type ' + '[' + imgtype + ']' + ' for loadimg().')
+    except:
         raise RuntimeError('Variable type not supported by loadimg().')
 
 

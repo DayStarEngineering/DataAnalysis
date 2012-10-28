@@ -4,7 +4,6 @@
 # Created: 10/2/2012
 # Description: This script centroids some stars.
 #
-
 ###################################################################################
 # Must import this for every script in this directory in order to use our modules!!
 ###################################################################################
@@ -16,25 +15,24 @@ import script_setup
 from analysis import centroid as centroid
 from util import imgutil as imgutil
 from util import submethods as subm
+from db import RawData as database
 
 ###################################################################################
 # Main
 ###################################################################################
 # Load the image:
-image = imgutil.loadimg('/home/kevin/Desktop/img_1348368011_459492_00146_00000_1.dat')
-
-# Get a good estimation for the background level and variance:
-#(mean,std) = centroid.frobomad(image)
-
-# Do column subtraction:
-#image = subm.colmeansub(image)
+db = database.Connect()
+fnames = db.find('raw_fn','burst_num = 145 and gain = 1').raw_fn.tolist()
+fname = fnames[1]
+print 'Opening: ' + fname
+image = imgutil.loadimg(fname,from_database=True)
 
 # Find star centroids:
-(centroids) = centroid.findstars(image,debug=True)
-centroids = zip(*centroids)
-
-# Display image:
-imgutil.dispimg(image,5)
+(centers) = centroid.findstars(image,debug=True)
+centroids = centroid.imgcentroid(image,centers)
 
 # Display image with stars circled:
-imgutil.circstars(image,centroids[0],25,viewfactor=4)
+if centroids:
+    imgutil.circstars(image,centroids,1,viewfactor=1)
+else:
+    print 'Oopsies... we found ZERO centroids. Now how do you feel?'
