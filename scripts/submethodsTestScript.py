@@ -4,7 +4,7 @@
 
 import script_setup
 from util import imgutil as imgutil
-from util import submethods as submethods
+from analysis import submethods as submethods
 
 import numpy as np
 
@@ -20,15 +20,21 @@ img = imgutil.loadimg(datpic)
 #fullimg = imgutil.loadimg(datpic,'full')
 
 # do subtractions
-print 'doing sigma subtraction...'
+print 'doing subtraction...'
 #DRCMimg = submethods.darkcolsub(fullimg)
-CMimg = submethods.colmeansub(img)
+#CMimg = submethods.colmeansub(img)
 #CSMimg = submethods.colsigsub(img)
+ix,iy = 1080,1080-10
+iw,ih = 4,5
+window,(x,y),(cx,cy) = submethods.windowsub(img,(ix,iy),(iw,ih))
+
 
 # display images
 #imgutil.dispimg(DRCMimg)
 print 'displaying image...'
-imgutil.dispimg(CMimg,10) # displayed with an optional view factor of 10
+#imgutil.dispimg(CMimg,10) # displayed with an optional view factor of 10
+imgutil.dispimg(window)
+#imgutil.dispimg(img[100:100+int(5*2.5)+1][:,100:100+int(4*2.5)+1])
 
 # save images
 #imgutil.saveimg(DRCMimg,DRCMoutfile)
