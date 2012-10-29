@@ -155,12 +155,14 @@ def circstars(imgArray,centlist,radius=None,color=None,viewfactor=1,fignum = 1):
     '''circstars(): Displays an image imgArray with circles (with specified radius) overlayed 
     at the positions given in centlist. The standard color is red, 'r'.'''
         
+        
+        
     # check: image numpy ndarray, centlist list of tuples or lists
     if type(imgArray) != np.ndarray:
-        raise RuntimeError('circstars(): arg 1 must be type np.ndarray')
+        raise RuntimeError('circstars(): imgArray must be type np.ndarray')
     
     if type(centlist[0]) is not tuple and type(centlist[0]) is not list:            
-        raise RuntimeError('circstars(): arg 2 must be type list or tuple')
+        raise RuntimeError('circstars(): centlist must be type list or tuple')
     
     # set defaults 
     if color == None:
@@ -182,7 +184,6 @@ def circstars(imgArray,centlist,radius=None,color=None,viewfactor=1,fignum = 1):
     
     # actually display it
     pl.show()
-
 
 # ----------------------------- Save Image --------------------------------------
 # saveimg(): saves list image to given path, filename as a TIF

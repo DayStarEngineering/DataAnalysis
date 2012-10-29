@@ -15,8 +15,12 @@ def matchstars(centlistA,centlistB,searchradius=25):
     >>> print a[0]
     >>> ((xA,yA),(xB,yB)) # but with numbers''' 
     
+    # checks
+    if centlistA == [] or centlistB == []: 
+        raise RuntimeError('No matched stars between frames, centlistA or centlistB is empty')
+            
     if type(centlistA[0]) is not tuple and type(centlistB[0]) is not tuple:            
-        raise RuntimeError('matchstars(): type tuple expected')
+        raise RuntimeError('matchstars(): type tuple expected inside centroid lists')
         
     # go through list A one at a time, remove matched stars from B
     matchedlist = []
