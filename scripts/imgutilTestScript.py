@@ -7,23 +7,23 @@ from util import imgutil as imgutil
 # from util import *
 
 # image in paths
-#tifpicIN = '../testimgdir/img_1348355543_717188_00015_00000_0_gray.tif'
+tifpicIN = '../testimgdir/img_1348355543_717188_00015_00000_0_gray.tif'
 datpicIN = '../testimgdir/img_1348355543_717188_00015_00000_0.dat'
 #image out path
-#tifpicOUT = '../testimgdir/tifpicsaved.tif'
+tifpicOUT = '../testimgdir/tifpicsaved.tif'
 datpicOUT = '../testimgdir/datpicsaved.tif'
 
-#loadedtif = imgutil.loadimg(tifpicIN)
+loadedtif = imgutil.loadimg(tifpicIN)
 loadeddat = imgutil.loadimg(datpicIN)
 
 # display loaded dat
-#imgutil.dispimg(loadedtif)
+imgutil.dispimg(loadedtif)
 imgutil.dispimg(loadeddat)
 
 # try out new centroids display
-cents = [(0,0),(100.0,100.0),(500.5,500.5),(700,1700),(1200,1200),(1500.5,1500.5),(2000,2000)]
-loadeddat[700][1700] = 60000
-imgutil.circstars(loadeddat,cents)
+#cents = [(0,0),(100.0,100.0),(500.5,500.5),(700,1700),(1200,1200),(1500.5,1500.5),(2000,2000)]
+#loadeddat[700][1700] = 60000
+#imgutil.circstars(loadeddat,cents)
 
 
 # test new load with optional cropping

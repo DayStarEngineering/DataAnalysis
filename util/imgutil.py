@@ -29,7 +29,7 @@ def loadimg(filename, from_database=False, load_full=False):
             
         imgtype = filetype(filename) # what type of file is it?
         # TIF file type
-        print imgtype
+
         if (imgtype == 'tif'):   
             imgout = loadtif(filename)
             return imgout
@@ -137,11 +137,11 @@ def cropimg(imgArray):
     return img
 
 # -----------------------------Display Image-------------------------------------
-def dispimg(imgArray, viewfactor=1):
+def dispimg(imgArray, viewfactor=1, fignum = 1):
     '''dispimg(): uses pylab, imshow to display a numpy ndarray. viewfactor multiplies
     the entire image by the viewfactor.'''    
     try:
-        pl.figure()
+        pl.figure(fignum)
         pl.gray()
         pl.imshow(np.multiply(imgArray,viewfactor), cmap=None, norm=None, aspect=None, \
                                 interpolation='nearest', vmin=0, vmax=2048, origin='upper')
@@ -151,7 +151,7 @@ def dispimg(imgArray, viewfactor=1):
         raise RuntimeError('dispimg(): input must be type np.ndarray and viewfactor must be an int')
 
 # -----------------------------Display Image with Cenroids Cirled ------------------------------
-def circstars(imgArray,centlist,radius=None,color=None,viewfactor=1):
+def circstars(imgArray,centlist,radius=None,color=None,viewfactor=1,fignum = 1):
     '''circstars(): Displays an image imgArray with circles (with specified radius) overlayed 
     at the positions given in centlist. The standard color is red, 'r'.'''
         
@@ -169,7 +169,7 @@ def circstars(imgArray,centlist,radius=None,color=None,viewfactor=1):
         radius = 10 # default radius
             
     # plot the image 
-    pl.figure()
+    pl.figure(fignum)
     pl.gray()
     pl.imshow(np.multiply(imgArray,viewfactor), cmap=None, norm=None, aspect=None,
                 interpolation='nearest', vmin=0, vmax=2048, origin='upper')
