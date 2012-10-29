@@ -78,16 +78,23 @@ for count,matched in enumerate(matched_centroids):
 print quats
 
 # Find variance in quaternions - different methods
-print "Find Variance"
 from analysis import tracking
+import pylab
+print "Find Variance"
 print "Filtering frequency below 1.5Hz"
 motion_frequency=1.5
 print "Time between images is 0.1 [s]"
 delta_t=0.1
 print "Showing plots of filtering"
 show_plot=1
-
+pylab.close()
 var1 = tracking.FindVariance(quats,delta_t=delta_t,motion_frequency=motion_frequency,plot=show_plot)
+fig=pylab.figure(1)
+fig.savefig('../../Papers/IEEE/figures/roll_1.5Hz_freq.png')
+fig=pylab.figure(2)
+fig.savefig('../../Papers/IEEE/figures/pitch_1.5Hz_freq.png')
+fig=pylab.figure(3)
+fig.savefig('../../Papers/IEEE/figures/yaw_1.5Hz_freq.png')
 
 toc = time.clock()
 print 'Total time: ' + str(toc - tic) + ' s'
