@@ -43,9 +43,9 @@ def test_highpass():
         Just call, and it will perform all testing.
     """
     signal=noisy_sin()
-    signal2=high_pass(signal,cutoff=0.1,delta=1,plot=1)
+    signal2=high_pass(signal,cutoff=2,delta=.05,plot=1,variable='roll [rad]')
     pylab.title('Brick Wall Filtering')
-    nil=high_pass(signal,plot=1,lfilt=1)
+    nil=high_pass(signal,delta=.05,plot=1,lfilt=1)
     pylab.title('SciPy "lfilt" filtering. Just guesswork')
     return signal, signal2
 
@@ -103,7 +103,7 @@ def quat2rpy(quaternions):
 
 
 
-def high_pass(series,cutoff=100,delta=1,plot=None,lfilt=None):
+def high_pass(series,cutoff=100,delta=1,plot=None,lfilt=None,variable='signal'):
     """
         Purpose: High-pass filter a single array series using fourrier transforms.
         Inputs: series-an array of observations to filter (i.e) lots of angle measurements
@@ -128,7 +128,7 @@ def high_pass(series,cutoff=100,delta=1,plot=None,lfilt=None):
         for ii in range(0, len(fft_filt)):
             if ii <cutoff_freq:
                 fft_filt[ii] = 0.0
-                fft_filt[len(fft_filt) - ii -1] = 0.0
+#                fft_filt[len(fft_filt) - ii -1] = 0.0
     else:  # Doesn't really work
         fft_filt=signal.lfilter([0,0,0,.5,1,1,1,1,1,1,1,1,1,],[1],fft_series)
 
@@ -139,14 +139,14 @@ def high_pass(series,cutoff=100,delta=1,plot=None,lfilt=None):
         pylab.figure(num=None, figsize=(13, 7), dpi=80, facecolor='w', edgecolor='k')
         # Signal
         pylab.subplot(2,2,1)
-        pylab.plot(series)
+        pylab.plot(np.arange(0,ns*delta,delta),series)
         pylab.xlabel('Time')
-        pylab.ylabel('Signal')
+        pylab.ylabel(variable)
 
         pylab.subplot(2,2,3)
-        pylab.plot(new_series)
+        pylab.plot(np.arange(0,ns*delta,delta),new_series)
         pylab.xlabel('Time')
-        pylab.ylabel('Filtered Signal')
+        pylab.ylabel('Filtered ' + variable)
 
         #fourrier signal
         pylab.subplot(2,2,2)
