@@ -6,12 +6,11 @@ import sys
 import subprocess
 
 
-class Connect(DayStarDB.DatabaseConnect,debug=1):
-    def __init__(self):
-        debug=self.debug
+class Connect(DayStarDB.DatabaseConnect):
+    def __init__(self,debug=0):
+        self.debug=debug
         default_table = "rawdata"
         DayStarDB.DatabaseConnect.__init__(self,environment='rawdata',debug=debug,default_table=default_table) # Instantiate the class
-
         # Check to see if the 'DayStar' database exists
         if 'DayStar' not in self.show_databases(1):
             print "You don't appear to have a database set up for raw processing."
