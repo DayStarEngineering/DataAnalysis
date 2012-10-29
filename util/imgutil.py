@@ -3,9 +3,11 @@
 # Image utilities to load, display, save images
 
 import numpy as np
-from libtiff import TIFF
+#from libtiff import TIFF
+import PIL.Image as TIFF
 import pylab as pl
 import os
+
 
 # ------------------------------- Load Image ---------------------------------
 # loadimg(): loads a tiff, dat, or array into memory
@@ -115,8 +117,10 @@ def loadtif(filename):
     '''loadtif(): Loads *.tif file and returns a numpy ndarray. Uses libtiff functions.
     JD, DayStar, 10/10/12'''
     tif = TIFF.open(filename, mode='r')  # open tif file
-    data = tif.read_image()             # read in pixel values as numpy ndarray
-    TIFF.close(tif)
+#    data = tif.read_image()             # read in pixel values as numpy ndarray
+#    TIFF.close(tif)
+    # For work with the PIL image library
+    data=np.array(tif.getdata(),np.uint8).reshape(tif.size[0], tif.size[1])
     return data
 
 def cropimg(imgArray):
@@ -187,15 +191,19 @@ def saveimg(imgArray, outfile, viewfactor=None):
         if filetype(outfile) == 'tif':
             if viewfactor == None:
                 imgArray = np.rot90(imgArray)   # have to rotate for correct orientation
-                tif = TIFF.open(outfile, mode='w')
-                tif.write_image(imgArray)
-                TIFF.close(tif)
+                imgArray=TIFF.fromarray(imgArray)
+                TIFF.Image.save(imgArray,outfile)
+#                tif = TIFF.open(outfile, mode='w')
+#                tif.write_image(imgArray)
+#                TIFF.close(tif)
             elif viewfactor != None and type(viewfactor) == int:
                 imgArray = np.rot90(imgArray)   # have to rotate for correct orientation
                 imgArray = imgArray*viewfactor  # multiply image by viewfactor
-                tif = TIFF.open(outfile, mode='w')
-                tif.write_image(imgArray)
-                TIFF.close(tif)
+#                tif = TIFF.open(outfile, mode='w')
+#                tif.write_image(imgArray)
+#                TIFF.close(tif)
+                imgArray=TIFF.fromarray(imgArray)
+                TIFF.Image.save(imgArray,outfile)
             else:
                  raise RuntimeError('viewfactor must be type int')
             
