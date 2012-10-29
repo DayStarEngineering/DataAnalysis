@@ -23,7 +23,7 @@ from db import RawData as database
 from itertools import izip, islice
 import cPickle as pickle
 import time
-
+import numpy as np
 ###################################################################################
 # Main
 ###################################################################################
@@ -33,13 +33,14 @@ import time
 
 # Get desired filenames from database:
 db = database.Connect()
-fnames = db.select('select raw_fn from rawdata where burst_num = 145 limit 3').raw_fn.tolist()
+fnames = db.select('select raw_fn from rawdata where burst_num = 15 limit 10').raw_fn.tolist()
 #fnames = db.find('raw_fn','burst_num = 145 limit 5').raw_fn.tolist()
 n = len(fnames)
 
 tic = time.clock()
 print 'Starting analysis.'
 centroids = []
+numstars = []
 for count,fname in enumerate(fnames):
     # Display status:
     print 'Loading and centroiding filename ' + str(count+1) + ' of ' + str(n) + '.'
@@ -53,6 +54,16 @@ for count,fname in enumerate(fnames):
     # Get centroids:
     centroids.append(centroid.imgcentroid(image,centers))
 
+    numstars.append(len(centroids[count]))
+    
+    # show images w/ with centroids
+    # imgutil.circstars(image,centroids[count],fignum = count+1)
+    
+        
+print 'numstars:', numstars
+print 'avg stars:', np.mean(numstars)
+
+
 # Pickle the found centroids for safekeeping :)
 # To load later: centroids = pickle.load( open( "saved_centroids.p", "rb" ) )
 pickle.dump( centroids, open( "saved_centroids_" + time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime()) + ".pk", "wb" ) )
@@ -60,9 +71,13 @@ pickle.dump( centroids, open( "saved_centroids_" + time.strftime("%Y-%m-%d_%H:%M
 # Match Stars: 
 print 'Matching stars.'
 matched_centroids = []
+nummatchstars = []
 for count,(centlistA,centlistB) in enumerate(izip(centroids, islice(centroids, 1, None))):
     print 'Comparing centroid list: ' + str(count+1) + ' to ' + str(count+2) + '.'
-    matched_centroids.append(starmatcher.matchstars(centlistA,centlistB))
+    matched_centroids.append(starmatcher.matchstars(centlistA,centlistB,50))
+    nummatchstars.append(len(matched_centroids[count]))
+print 'num matched stars:', nummatchstars
+print 'avg num matched stars:', np.mean(nummatchstars)
 
 # Find quaternions:
 print 'Find quaternions.'
@@ -90,11 +105,11 @@ show_plot=1
 pylab.close()
 var1 = tracking.FindVariance(quats,delta_t=delta_t,motion_frequency=motion_frequency,plot=show_plot)
 fig=pylab.figure(1)
-fig.savefig('../../Papers/IEEE/figures/roll_1.5Hz_freq.png')
+fig.savefig('../../Papers/IEEE/Figures/roll_1.5Hz_freq.png')
 fig=pylab.figure(2)
-fig.savefig('../../Papers/IEEE/figures/pitch_1.5Hz_freq.png')
+fig.savefig('../../Papers/IEEE/Figures/pitch_1.5Hz_freq.png')
 fig=pylab.figure(3)
-fig.savefig('../../Papers/IEEE/figures/yaw_1.5Hz_freq.png')
+fig.savefig('../../Papers/IEEE/Figures/yaw_1.5Hz_freq.png')
 
 toc = time.clock()
 print 'Total time: ' + str(toc - tic) + ' s'
