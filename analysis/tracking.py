@@ -18,16 +18,17 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=None):
                  and will be discarded. Intended for analyzing high-frequency variations in a set of rotation
                  quaternions, specifically for the DayStar platform.
         Inputs: quaternions - List of quaternion arrays, formatted 'SXYZ' I think.
-                delta_t - Time between quaternion observations [s]. Assumed (and must be) uniform for all frames
-                motion_frequency - The frequency of motion that we wish to filter out.
-                plot - Optional keyword, generate plots of the fourrier filterig as we do it, to see how the signal
+                delta_t - (optional) Time between quaternion observations [s]. Assumed (and must be) uniform for all frames
+                motion_frequency - (optional) The frequency of motion that we wish to filter out.
+                plot - (optional) Set to generate plots of the fourrier filterig as we do it, to see how the signal
                        changes
+                variable -(optional), the name of the signal being filtered. Used for plot labeling.
         Outputs: var - The computed variance of all observations. Meant to be some indication of DayStar performance
     """
     [r,p,y]=quat2rpy(quaternions)
-    r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot)     #radians
-    p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot)     #radians
-    y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot)     #radians
+    r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll')     #radians
+    p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch')     #radians
+    y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw')     #radians
 
     obs_std = np.sqrt(np.std(r_filt)**2 + np.std(p_filt)**2 + np.std(y_filt)**2)    #Standard deviation
 
