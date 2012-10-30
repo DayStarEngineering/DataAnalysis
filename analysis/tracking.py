@@ -37,6 +37,24 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=None):
     return var
 
 
+def optimize_variance(quats,delta_t=0.01):
+    """
+    Purpose: Very basic attempt to find best motion frequency to get the best variance for a single series observations
+    """
+    ns = len(quats)
+    # Max cutoff leaves at least half of the spectrum
+    cutoff_freq=ns/2
+    cutoff2=cutoff_freq/(ns*delta_t)
+
+    motion_freq=np.arange(0,cutoff2,1)
+    var=[]
+    for ii in np.arange(0,4,.1):
+        var.append(FindVariance(quats,motion_frequency=ii,delta_t=0.01))
+
+    pylab.figure()
+    pylab.plot(var)
+    return var
+
 
 # Simple routine to test the effectiveness of the highpass filter
 def test_highpass():
@@ -107,12 +125,14 @@ def quat2rpy(quaternions):
 def high_pass(series,cutoff=100,delta=1,plot=None,lfilt=None,variable='signal'):
     """
         Purpose: High-pass filter a single array series using fourrier transforms.
-        Inputs: series-an array of observations to filter (i.e) lots of angle measurements
-                cutoff-(optional) Specify cutoff frequency [HZ]
-                delta-(optional) time between observations [s]
-                plot-(optional) Plot the results of this op in an awesome way
-                lfilt-(optional) Try a Scipy.signal.lfilt filter. Just experimental for now
-        Outputs: new_series-the new series, with low frequency changes filtered out
+
+        Inputs: {series} -an array of observations to filter (i.e) lots of angle measurements
+                {cutoff} -(optional) Specify cutoff frequency [HZ]
+                {delta}  -(optional) time between observations [s]
+                {plot}   -(optional) Plot the results of this op in an awesome way
+                {lfilt}  -(optional) Try a Scipy.signal.lfilt filter. Just experimental for now
+
+        Outputs:{new_series} -the new series, with low frequency changes filtered out
     """
 #    power = power_spectrum(series,sampling_frequency=sampling_frequency)
     ns =len(series)     # number of samples
