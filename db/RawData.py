@@ -26,13 +26,14 @@ class Connect(DayStarDB.DatabaseConnect):
         if 'rawdata' not in self.show_tables(1):
             self.initialize_raw_table()
             self.seed_raw_table()
-        print "You are now connected to and using the DayStar RAW database   >>('DayStar')"
-        print "The table you are using is    >>('rawdata')"
-        self.describe_table()
-        print "Search data with things like: "
-        print "                                 >>raw.find('what','where')"
-        print "                                 >>raw.select('sql query')"
-        print "                                 >>raw.select_full_table()"
+        if debug > 0:
+            print "You are now connected to and using the DayStar RAW database   >>('DayStar')"
+            print "The table you are using is    >>('rawdata')"
+            self.describe_table()
+            print "Search data with things like: "
+            print "                                 >>raw.find('what','where')"
+            print "                                 >>raw.select('sql query')"
+            print "                                 >>raw.select_full_table()"
 
 
 
