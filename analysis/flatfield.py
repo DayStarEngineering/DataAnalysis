@@ -5,6 +5,8 @@ __author__ = 'zachdischner'
              *  Gain Normalization
              *  Vignette Removal
              *  Background/Noise Subtraction?
+
+             DO IT BY MEAN OR MEDIAN??? Re impliment so I can do median/mean finding
 """
 
 import numpy as np
@@ -87,9 +89,9 @@ def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0):
 
             #Normalize Both Images to the same gain setting
             if target is None:
-                target=np.mean([np.median(imgTop),np.median(imgBottom)])
-            topFactor = target/np.median(imgTop)
-            bottomFactor = target/np.median(imgBottom)
+                target=np.mean([np.mean(imgTop),np.mean(imgBottom)])
+            topFactor = target/np.mean(imgTop)
+            bottomFactor = target/np.mean(imgBottom)
 
             NormImg = np.append(imgTop*topFactor,imgBottom*bottomFactor,axis=0)
 
@@ -124,12 +126,12 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None):
 
     # Get target normalization
     if target is None:
-        target = np.median(imgArray)
+        target = np.mean(imgArray)
 
     # Get normalization factor
     norm_factor = []
     for col in range(0,cols):
-        norm_factor.append(target/np.median(darkrows[:,col]))
+        norm_factor.append(target/np.mean(darkrows[:,col]))
 
     # Apply Normalization Factor
     new_imgArray = imgArray*norm_factor
@@ -163,12 +165,12 @@ def ImgColNormalize(imgArray,target=None):
 
     # Get target normalization
     if target is None:
-        target = np.median(imgArray)
+        target = np.mean(imgArray)
 
     # Get normalization factor
     norm_factor = []
     for col in range(0,cols):
-        norm_factor.append(target/np.median(imgArray[:,col]))
+        norm_factor.append(target/np.mean(imgArray[:,col]))
 
     # Apply Normalization Factor
     new_imgArray = imgArray*norm_factor
