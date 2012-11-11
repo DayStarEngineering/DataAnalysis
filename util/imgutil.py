@@ -37,9 +37,9 @@ def loadimg(filename, from_database=False, load_full=False):
         # Dat file type    
         elif (imgtype == 'dat'):
             if load_full:
-                imgout = loaddat(filename)
+                imgout = loadfulldat(filename)
             else:
-                imgout = loadfulldat(filename) 
+                imgout = loaddat(filename)
             return imgout
         
         elif (imgtype == 'fits'):
@@ -139,7 +139,12 @@ def cropimg(imgArray):
 # -----------------------------Display Image-------------------------------------
 def dispimg(imgArray, viewfactor=1, fignum = 1):
     '''dispimg(): uses pylab, imshow to display a numpy ndarray. viewfactor multiplies
-    the entire image by the viewfactor.'''    
+    the entire image by the viewfactor.'''
+    #Zach-changed it to just get the new figure number
+    if fignum==1:
+        f=pl.figure()
+        fignum=f.number
+
     try:
         pl.figure(fignum)
         pl.gray()
