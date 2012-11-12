@@ -1,4 +1,14 @@
 __author__ = 'zachdischner'
+"""
+    Purpose: This file includes methods for analyzing sequences of star rotations. Includes utils for
+             *  Frequency transformation
+             *  Rotation sequence transformation
+             *  High pass frequency filtering
+             *  Time and frequency based plotting
+             *  Variance calculations from rotation sets
+"""
+
+
 
 
 import numpy as np
@@ -35,6 +45,73 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=None):
     var = 3600*(obs_std*180/math.pi)**2         # arcseconds
 
     return var
+
+
+def high_pass(series,cutoff=100,delta=1,plot=None,lfilt=None,variable='signal'):
+    """
+        Purpose: High-pass filter a single array series using fourrier transforms.
+
+        Inputs: {series} -an array of observations to filter (i.e) lots of angle measurements
+                {cutoff} -(optional) Specify cutoff frequency [HZ]
+                {delta}  -(optional) time between observations [s]
+                {plot}   -(optional) Plot the results of this op in an awesome way
+                {lfilt}  -(optional) Try a Scipy.signal.lfilt filter. Just experimental for now
+
+        Outputs:{new_series} -the new series, with low frequency changes filtered out
+    """
+    #    power = power_spectrum(series,sampling_frequency=sampling_frequency)
+    ns =len(series)     # number of samples
+
+    cutoff_freq=cutoff*(ns*delta)   # Index of cutoff frequency in this new awesome frequency domain
+    #    cutoff_freq=100
+
+    fft_series = np.fft.rfft(series)
+    fft_filt = fft_series.copy()
+
+
+    if lfilt is None:
+
+        for ii in range(0, len(fft_filt)):
+            if ii <cutoff_freq:
+                fft_filt[ii] = 0.0
+            #                fft_filt[len(fft_filt) - ii -1] = 0.0
+    else:  # Doesn't really work
+        fft_filt=signal.lfilter([0,0,0,.5,1,1,1,1,1,1,1,1,1,],[1],fft_series)
+
+    # Inverse fourrier. Get new filtered signal back
+    new_series = np.fft.irfft(fft_filt)
+
+    if plot is not None:
+        pylab.figure(num=None, figsize=(13, 7), dpi=80, facecolor='w', edgecolor='k')
+        # Signal
+        pylab.subplot(2,2,1)
+        pylab.plot(np.arange(0,ns*delta,delta),series)
+#        pylab.plot(series)
+        pylab.xlabel('Time')
+        pylab.ylabel(variable)
+
+        pylab.subplot(2,2,3)
+#        pylab.plot(new_series)
+        pylab.plot(np.arange(0,ns*delta,delta),new_series)
+        pylab.xlabel('Time')
+        pylab.ylabel('Filtered ' + variable)
+
+        #fourrier signal
+        pylab.subplot(2,2,2)
+        pylab.plot(fft_series)
+        pylab.xlabel('Freq (Hz)')
+        pylab.ylabel('Original Power')
+
+        pylab.subplot(2,2,4)
+        pylab.plot(fft_filt)
+        pylab.xlabel('Freq (Hz)')
+        pylab.ylabel('Filtered Power')
+
+    return new_series
+
+
+
+
 
 
 def optimize_variance(quats,delta_t=0.01):
@@ -118,69 +195,6 @@ def quat2rpy(quaternions):
         pitch.append(RPY[1])
         yaw.append(RPY[2])
     return roll,pitch,yaw
-
-
-
-
-def high_pass(series,cutoff=100,delta=1,plot=None,lfilt=None,variable='signal'):
-    """
-        Purpose: High-pass filter a single array series using fourrier transforms.
-
-        Inputs: {series} -an array of observations to filter (i.e) lots of angle measurements
-                {cutoff} -(optional) Specify cutoff frequency [HZ]
-                {delta}  -(optional) time between observations [s]
-                {plot}   -(optional) Plot the results of this op in an awesome way
-                {lfilt}  -(optional) Try a Scipy.signal.lfilt filter. Just experimental for now
-
-        Outputs:{new_series} -the new series, with low frequency changes filtered out
-    """
-#    power = power_spectrum(series,sampling_frequency=sampling_frequency)
-    ns =len(series)     # number of samples
-
-    cutoff_freq=cutoff*(ns*delta)   # Index of cutoff frequency in this new awesome frequency domain
-#    cutoff_freq=100
-
-    fft_series = np.fft.rfft(series)
-    fft_filt = fft_series.copy()
-
-
-    if lfilt is None:
-
-        for ii in range(0, len(fft_filt)):
-            if ii <cutoff_freq:
-                fft_filt[ii] = 0.0
-#                fft_filt[len(fft_filt) - ii -1] = 0.0
-    else:  # Doesn't really work
-        fft_filt=signal.lfilter([0,0,0,.5,1,1,1,1,1,1,1,1,1,],[1],fft_series)
-
-    # Inverse fourrier. Get new filtered signal back
-    new_series = np.fft.irfft(fft_filt)
-
-    if plot is not None:
-        pylab.figure(num=None, figsize=(13, 7), dpi=80, facecolor='w', edgecolor='k')
-        # Signal
-        pylab.subplot(2,2,1)
-        pylab.plot(np.arange(0,ns*delta,delta),series)
-        pylab.xlabel('Time')
-        pylab.ylabel(variable)
-
-        pylab.subplot(2,2,3)
-        pylab.plot(np.arange(0,ns*delta,delta),new_series)
-        pylab.xlabel('Time')
-        pylab.ylabel('Filtered ' + variable)
-
-        #fourrier signal
-        pylab.subplot(2,2,2)
-        pylab.plot(fft_series)
-        pylab.xlabel('Freq (Hz)')
-        pylab.ylabel('Original Power')
-
-        pylab.subplot(2,2,4)
-        pylab.plot(fft_filt)
-        pylab.xlabel('Freq (Hz)')
-        pylab.ylabel('Filtered Power')
-
-    return new_series
 
 
 
