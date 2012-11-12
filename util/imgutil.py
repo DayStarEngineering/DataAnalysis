@@ -36,7 +36,7 @@ def loadimg(filename, from_database=False, load_full=False):
         
         # Dat file type    
         elif (imgtype == 'dat'):
-            if load_full:
+            if not load_full:
                 imgout = loaddat(filename)
             else:
                 imgout = loadfulldat(filename) 
