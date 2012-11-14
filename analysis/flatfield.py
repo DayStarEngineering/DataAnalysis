@@ -14,6 +14,8 @@ import pylab as pylab
 import math
 from util import imgutil
 from collections import Counter
+from analysis import centroid as centroid
+import time
 # Get the mode   from collections import Counter
 #                Counter(col).most_common(1)[0][0]
 
@@ -21,43 +23,69 @@ def test_Normalize():
     fn = "/Users/zachdischner/Desktop/StarTest_9_9_2012/Gray/img_1347267746_089087_00006_00017_0_gray.tif"
     fn = "/Users/zachdischner/Desktop/img_1348370245_127071_00175_00000_1.dat"
     img=imgutil.loadimg(fn,load_full=1)
-    imgutil.dispimg(img,viewfactor=4.)
-    pylab.title('Original Image')
-    print "Original image median and standard deviation:  %s    and    %s  " % (np.median(img),np.std(img))
+#    imgutil.dispimg(img,viewfactor=4.)
+
+    print "Original image Rmean and standard deviation:  %s    and    %s  " % (np.median(img),np.std(img))
 
     i2 = NormalizeColumnGains(img,Plot=1,JustDark=1)
     pylab.title('Just Dark Row Normalization')
     print "Just using Dark rows, image size is: "
     print i2.shape
-    print "Dark Row based image median and standard deviation:  %s    and    %s  " % (np.median(i2),np.std(i2))
+    print "Dark Row based image Rmean and standard deviation:  %s    and    %s  " % (np.median(i2),np.std(i2))
+
 
     i3 = NormalizeColumnGains(img,Plot=1)
-    pylab.title('Using Dark row and Whole Image Median')
+    pylab.title('Using Dark row and Whole Image Rmean')
 
-    imgutil.dispimg(i2,viewfactor=4)
-    pylab.title("Dark Row median normalization")
+
 
     print "Now using the entire image, image size is: "
     print i3.shape
 
-    imgutil.dispimg(i3,viewfactor=4.)
-    pylab.title('DR + Image Norm ')
-    print "DR + Whole image median and standard deviation:  %s    and    %s  " % (np.median(i3),np.std(i3))
+#    imgutil.dispimg(i3,viewfactor=4.)
+#    pylab.title('DR + Image Norm ')
+    print "DR + Image Column Rmean and standard deviation:  %s    and    %s  " % (np.median(i3),np.std(i3))
 
-    # img is a numpy array
 
+    ## DR and Row and Column Normalization
+    t=time.time()
     img=imgutil.loadimg(fn)
-    i4 = NormalizeColumnGains(img,Plot=1)
-    pylab.title('Using Image Median')
+    i4 = NormalizeColumnGains(img)
+    # Also do row normalization
+    i4 = NormalizeColumnGains(img,Plot=1,Rows=1)
+    pylab.title('Using DR + Column + Row Rmean')
+    print "Took %s seconds" % (time.time()-t)
     print "Now using the entire image, image size is: "
     print i4.shape
 
-    imgutil.dispimg(i4,viewfactor=4.)
-    pylab.title('Image Norm ')
-    print "Just Whole image median and standard deviation:  %s    and    %s  " % (np.median(i4),np.std(i4))
+#    imgutil.dispimg(i4,viewfactor=4.)
+
+    print "DR + Row + Col Rmean and standard deviation:  %s    and    %s  " % (np.median(i4),np.std(i4))
+
+    
+    pylab.figure()
+    pylab.subplot(2,2,1)
+    pylab.imshow(np.multiply(img[0::5,0::5],4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
+    pylab.title('Original Image')
+
+    pylab.subplot(2,2,2)
+    pylab.imshow(np.multiply(i2[0::5,0::5],4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
+    pylab.title('DR and Col')
+
+
+    pylab.subplot(2,2,3)
+    pylab.imshow(np.multiply(i3[0::5,0::5],4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
+    #    imgutil.dispimg(i2,viewfactor=4)
+    pylab.title("Dark Row Rmean normalization")
+
+    pylab.subplot(2,2,4)
+    pylab.imshow(np.multiply(i4[0::5,0::5],4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
+    pylab.title('Dr and Col and Row Norm ')
+
+
     return i4
 
-def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0):
+def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0,Rows=0):
     """
         Purpose: Normalize an image array to remove column gain bias. Designed for DayStar images.
 
@@ -87,7 +115,7 @@ def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0):
             imgTop = DarkColNormalize(imgArray[imgTstart:DRTend+1,:],top=1,Plot=PlotAll)   # No Dark Columns, Just Dark Rows and pic
             imgBottom = DarkColNormalize(imgArray[DRBstart:imgBend,:],Plot=PlotAll)
 
-            #Normalize Both Images to the same gain setting
+            # Normalize Both Images to the same gain setting
             if target is None:
                 target=np.mean([np.mean(imgTop),np.mean(imgBottom)])
             topFactor = target/np.mean(imgTop)
@@ -97,9 +125,16 @@ def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0):
 
             # Return just the dark or both?
             if not JustDark:
-                NormImg = NormalizeColumnGains(NormImg,target=target,PlotAll=PlotAll,Plot=Plot)
+                NormImg = NormalizeColumnGains(NormImg,target=target)
+                if Rows:
+                    NormImg = NormalizeColumnGains(NormImg,target=target,Rows=Rows)
+
 
         else:
+            if JustDark:
+                print "You ToolBag! You are trying to normalize the dark columns of an image with no dark columns!!!"
+                print "flatfield.NormalizeColumnGains   expects a dark column image of size   [2192,2592]"
+                print "Image size passed is:   [%s]" % imgArray.shape
             NormImg = ImgColNormalize(imgArray)
 
 
@@ -131,6 +166,7 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None):
     # Get normalization factor
     norm_factor = []
     for col in range(0,cols):
+#        norm_factor.append(target/centroid.frobomad(darkrows[:,col])[0])
         norm_factor.append(target/np.mean(darkrows[:,col]))
 
     # Apply Normalization Factor
@@ -152,7 +188,7 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None):
 
 
 
-def ImgColNormalize(imgArray,target=None):
+def ImgColNormalize(imgArray,target=None, Rows=0):
     "THIS WONT WORK UNLESS LOOKING AT SOMETHING FLAT"
     """
     Purpose: Normalize image array based on dark columns.
@@ -168,14 +204,23 @@ def ImgColNormalize(imgArray,target=None):
         target = np.mean(imgArray)
 
     # Get normalization factor
-    norm_factor = []
-    for col in range(0,cols):
-        norm_factor.append(target/np.mean(imgArray[:,col]))
+        norm_factor = []
+    if Rows:
+        for row in range(0,rows):
+#            norm_factor.append(target/centroid.frobomad(imgArray[row,:])[0])
+            norm_factor.append(target/np.mean(imgArray[row,:]))
+
+    else:
+        for col in range(0,cols):
+#            norm_factor.append(target/centroid.frobomad(imgArray[:,col])[0])
+            norm_factor.append(target/np.mean(imgArray[:,col]))
+
 
     # Apply Normalization Factor
     new_imgArray = imgArray*norm_factor
 
     return new_imgArray
+
 
 def mode(col):
     return Counter(col).most_common(1)[0]
@@ -202,8 +247,8 @@ def PlotComparison(old_img,new_img,title="Title"):
     for col in range(0,cols):
         oldstd.append(np.std(old_img[:,col]))
         newstd.append(np.std(new_img[:,col]))
-        oldmed.append(np.median(old_img[:,col]))
-        newmed.append(np.median(new_img[:,col]))
+        oldmed.append(centroid.frobomad(old_img[:,col])[0])
+        newmed.append(centroid.frobomad(new_img[:,col])[0])
 
     randcol=pylab.randint(0,cols,800)
     randrow=pylab.randint(0,rows,800)
@@ -222,9 +267,9 @@ def PlotComparison(old_img,new_img,title="Title"):
     pylab.subplot(2,2,3)
     pylab.plot(oldmed)
     pylab.plot(newmed)
-    pylab.legend(['Before Normalization Median','After Normalization Median'])
+    pylab.legend(['Before Normalization Rmean','After Normalization Rmean'])
     pylab.xlabel('Column')
-    pylab.ylabel('Median')
+    pylab.ylabel('Robust Mean')
 
     #fourrier signal
     pylab.subplot(2,2,2)
