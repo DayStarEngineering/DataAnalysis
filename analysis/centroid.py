@@ -390,7 +390,7 @@ def main():
     (mean,std) = frobomad(image)
 
     # Do column subtraction:
-    #image = subm.colmeansub(image)
+    image = subm.colmeansub(image)
 
     # Find star centroids:
     centroids = findstars(image,std=std,debug=True)

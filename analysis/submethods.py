@@ -94,43 +94,29 @@ def darkcolsub(imgArray):
 
 
 
-# ----------------------- Column Mean Subtraction ----------------------
+# ----------------------- Column Mean Subtraction -----------------------------
 def colmeansub(imgArray):
+    '''
+    Subtracts the mean of each column in the top and bottom halves of the image
+    '''
+    # Deepcopy
+    img = np.int16( cp.deepcopy(imgArray) )
 
-    if type(imgArray) == np.ndarray:
-        if imgArray.shape == (2160,2560):
-            # useful index numbers
-            TRstart = 0          # image rows top start
-            TRend = 1080         # image rows top end
-            BRstart = TRend   # image rows bottom start
-            BRend = 2160      # image rows bottom start 
-            Cstart = 0          # columns of dark rows start
-            Cend = 2560  # columns of dark rows end
-            
-            topAvgs = np.ones((1,2560),dtype=np.uint16)
-            bottAvgs = np.ones((1,2560),dtype=np.uint16)
-
-            # top and botton column averages
-            for col in range(Cstart,Cend):
-                topAvgs[0][col] = int(np.average(imgArray[TRstart:TRend][:,col:col+1]))
-                bottAvgs[0][col] = int(np.average(imgArray[BRstart:BRend][:,col:col+1]))      
-            
-            # subtract for columns of top image area
-            
-            for col in xrange(Cstart,Cend):
-                for row in xrange(TRstart,TRend):
-                    imgArray[row][col] = subtract_uint16(imgArray[row][col], topAvgs[0][col])
-                for row in xrange(BRstart,BRend):
-                    imgArray[row][col] = subtract_uint16(imgArray[row][col], bottAvgs[0][col])
-            
-            # return subtracted image
-            return imgArray
-
-        else:   
-           raise RuntimeError('colmeansub(): image must be 2160x2560')                
-    else:
-        raise RuntimeError('numpy ndarray input required. Try using loadimg() first.')
-        
+    # Get size of the image
+    [ysize, xsize] = img.shape
+    middle = int(ysize/2)
+    
+    # Find averages of top and bottom
+    topAvg = np.uint16( np.average(img[0:middle,:], axis=0) )
+    botAvg = np.uint16( np.average(img[middle:ysize,:], axis=0) )
+    
+    # Subtract tiled averages
+    img[0:middle,:] -= np.tile(topAvg, (middle,1))
+    img[middle:ysize,:] -= np.tile(botAvg, (middle,1))
+    
+    # return subtracted image
+    return img  
+ 
     
 # ----------------------- Column 2 Sigma Subtraction ----------------------
 def colsigsub(imgArray):
