@@ -22,7 +22,7 @@ import sys
 
 
 
-def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=None):
+def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=None,order="xyzs"):
     """
         Purpose: Find the variance of a set of quaternions. Low Frequency components are assumed to be invalid
                  and will be discarded. Intended for analyzing high-frequency variations in a set of rotation
@@ -35,6 +35,13 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=None):
                 variable -(optional), the name of the signal being filtered. Used for plot labeling.
         Outputs: var - The computed variance of all observations. Meant to be some indication of DayStar performance
     """
+    # Hey, do this later smarter
+    if order != "xyzs":
+        quats=[]
+        for ii in range(quaternions.size/4-1):
+            quats.append([quaternions[3][ii],quaternions[1][ii],quaternions[2][ii],quaternions[0][ii]])
+        quaternions=quats
+
     [r,p,y]=quat2rpy(quaternions)
     r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll')     #radians
     p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch')     #radians
