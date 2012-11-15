@@ -103,18 +103,19 @@ def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0,Row
         # useful index numbers
             imgTstart = 0         # image rows top start
             imgTend = 1079        # image rows top end
-            DRTstart = 1079       # dark rows top start
+            DRTstart = 1080       # dark rows top start
             DRTend = DRTstart+16  # dark rows top end
-            DRBstart = DRTend     # dark rows bottom start
+            DRBstart = DRTend+1     # dark rows bottom start
             DRBend = DRBstart+16  # dark rows bottom end
-            imgBstart = DRBend    # image rows bottom start
+            imgBstart = DRBend+1    # image rows bottom start
             imgBend = 2159+32     # image rows bottom start
             DCstart = 16          # columns of dark rows start
             DCend = DCstart+2559  # columns of dark rows end
 
-
             imgTop = DarkColNormalize(imgArray[imgTstart:DRTend+1,:],top=1,Plot=PlotAll,Method=Method)   # No Dark Columns, Just Dark Rows and pic
+            print "imgTop shape",imgTop.shape
             imgBottom = DarkColNormalize(imgArray[DRBstart:imgBend,:],Plot=PlotAll,Method=Method)
+            print "imgBottom shape",imgBottom.shape
 
             # Normalize Both Images to the same gain setting
             if target is None: # May want to change this to include all the options
@@ -162,7 +163,7 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None,Method="Mean"):
     else:
         darkrows = imgArray[rows-16:rows,:]
 
-    # Get target normalization
+    # Get target normalization (which is median of the top or bottom half including dark rows))
     if target is None:
         target = centroid.frobomad(imgArray)[0]
 #        target = np.mean(imgArray)
