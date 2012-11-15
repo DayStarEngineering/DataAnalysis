@@ -29,6 +29,83 @@ import time
 import numpy as np
 import pylab as pl
 import copy as cp
+
+###################################################################################
+# Functions
+###################################################################################
+def getCentroids(fnames):
+    '''
+    From a list of filenames, load the filenames, clean up the images, find stars
+    in the images, and return a list of centroids and the number of stars found in
+    each image.
+    '''
+    
+    n = len(fnames)
+    centroids = []
+    numstars = []
+    for count,fname in enumerate(fnames):
+        # Display status:
+        print 'Loading and centroiding filename ' + str(count+1) + ' of ' + str(n) + '.'
+        
+        # Load the image:
+        image = imgutil.loadimg(fname,from_database=True)
+        
+        # Clean up image:
+        # Zach's stuff here...
+        
+        # Find stars in image:
+        centers = centroid.findstars(image)
+        
+        # Get centroids:
+        centroids.append(centroid.imgcentroid(image,centers))
+        
+        # store number of stars centroided per frame
+        numstars.append(len(centroids[count]))
+        
+    return centroids,numstars
+ 
+def getQuaternions(centroids):
+    '''
+    From a list of centroids found in successive image files, return a list of quaternions
+    representing the rotations between the image files
+    '''
+    print 'Matching stars.'
+    matched_centroids = []
+    centroid_pairs = []
+    nummatchstars = []
+    search_radius = 75
+    for count,(centlistA,centlistB) in enumerate(izip(centroids, islice(centroids, 1, None))):
+        
+        print 'Comparing centroid list: ' + str(count+1) + ' to ' + str(count+2) + '.'
+        pair = starmatcher.matchstars(centlistA,centlistB,search_radius)
+        centroid_pairs.append(pair)
+        matched_centroids.append(zip(*pair)[0])
+        
+        nummatches = len(centroid_pairs[count])
+        if nummatches == 0:
+            raise RuntimeError('Frames ' + str(count+1) + ' and ' + str(count+2) + ' not matched.')
+        else:    
+            nummatchstars.append(nummatches)
+
+    print 'Mean number of matched stars:', np.mean(nummatchstars)
+
+    print 'Find quaternions.'
+    quats = []
+    for (count,matched) in enumerate(centroid_pairs):
+        # Project 2d vectors into 3d space:
+        Vi2d,Vb2d = zip(*matched)
+        Vi = starmatcher.project3D(Vi2d)
+        Vb = starmatcher.project3D(Vb2d)
+        # Run the Q-Method:
+        quats.append(qmethod.qmethod(Vi,Vb))
+     
+    return quats
+
+###################################################################################
+# Set-up
+###################################################################################
+pl.close('all')
+
 ###################################################################################
 # Main
 ###################################################################################
@@ -36,194 +113,50 @@ import copy as cp
 # Daytime Burst: 15 (low gain)
 # Nighttime Burst: 172 = 30ms (avg=15), 175 = 50ms (avg=32), 181 works too
 
-# Which plots do you want brah? They are gunna be saved to Papers/IEEE/Figures
-plot1 = False # plots of number of centroids found and their paths 
-plot2 = False # plots of number of matched centroids found and their paths 
-plot3 = False # plots centroiding methods on same subtracted star
-plot4 = False # plots for fft stuff
+# Which plots do you want brah?
+plot = False
 
 # Get desired filenames from database:
+print 'Loading filenames from database.'
 db = database.Connect()
-fnames = db.select('select raw_fn from rawdata where burst_num = 172 limit 50').raw_fn.tolist()
+fnames = db.select('select raw_fn from rawdata where burst_num = 172 limit 3').raw_fn.tolist()
 #fnames = db.find('raw_fn','burst_num = 175 limit 5').raw_fn.tolist()
-n = len(fnames)
 
-tic = time.clock()
+        
 print 'Starting analysis.'
-centroids = []
-numstars = []
-for count,fname in enumerate(fnames):
-    # Display status:
-    print 'Loading and centroiding filename ' + str(count+1) + ' of ' + str(n) + '.'
-    
-    # Load the image:
-    image = imgutil.loadimg(fname,from_database=True)
-    # store 1st image for plotting
-    if count == 0:
-        image0 = imgutil.loadimg(fname,from_database=True)
-    
-    # Find stars in image:
-    centers = centroid.findstars(image)
-    
-    # Get centroids:
-    centroids.append(centroid.imgcentroid(image,centers))
-    
-    # store number of stars centroided per frame
-    numstars.append(len(centroids[count]))
-    
-    
-print 'numstars:', numstars
-print 'avg stars:', np.mean(numstars)
+tic = time.clock()
 
-# --------- Plot of number of stars and paths on image over time --------------------------
-if plot1:
-    print 'saving plots of number of stars and their paths'
-    # plot number of star as function of frames, saved to Papers/IEEE/Figures
-    plots.starnum(numstars)
-    # COOL PLOT 1
-    # show first image w/ with centroids from following frames, saved to Papers/IEEE/Figures
-    plots.starpaths(image0,centroids)
-# ------------------------------------------------------------------------------------------
-
+# Get centroids from each file:
+centroids,numstars = getCentroids(fnames)
+    
+print 'Mean number of stars found: ', np.mean(numstars)
 
 # Pickle the found centroids for safekeeping :)
 # To load later: centroids = pickle.load( open( "saved_centroids.p", "rb" ) )
-pickle.dump( centroids, open( "saved_centroids_" + time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime()) + ".pk", "wb" ) )
+pname = "saved_centroids_" + time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime()) + ".pk"
+pickle.dump( centroids, open( pname, "wb" ) )
+centroids = pickle.load( open( pname, "rb" ) )
 
-# --------------Match Stars:--------------------- 
-print 'Matching stars.'
-matched_centroids = []
-nummatchstars = []
-search_radius = 75
-for count,(centlistA,centlistB) in enumerate(izip(centroids, islice(centroids, 1, None))):
-    print 'Comparing centroid list: ' + str(count+1) + ' to ' + str(count+2) + '.'
-    # finding matches
-    matched_centroids.append(starmatcher.matchstars(centlistA,centlistB,search_radius))
-    
-    # storing, check number of matches
-    nummatches = len(matched_centroids[count])
-    if nummatches == 0:
-        print 'Frames '+ str(count+1)+' and '+ str(count+2) + ' not matched.'
-        raise RuntimeError('Two frames were not matched.')
-    else:    
-        nummatchstars.append(nummatches)
-
-print 'num matched stars:', nummatchstars
-print 'avg num matched stars:', np.mean(nummatchstars)
+# Get quaternions from our centroids:
+quats = getQuaternions(centroids)
 
 
-# -------------- Plot matches stars and matched star paths ----------------------------
-if plot2: 
-    print 'saving plots of matched number of stars and their paths'
-    # plot number of match stars as function of frames, saved to Papers/IEEE/Figures
-    plots.starnum(nummatchstars)
-    # plot matched paths
-    
-    fig = pl.figure()
-    fig = pl.gray()
-    fig = pl.imshow(np.multiply(image0,1), cmap=None, norm=None, aspect=None,
-                interpolation='nearest', vmin=0, vmax=2048, origin='upper')
-    radius = 10
-    color = 'r'
-    for centlist in matched_centroids:
-        for pospair in centlist:
-            circ = pl.Circle(tuple(pospair[0]), radius, ec=color, fill=False)
-            fig = pl.gca().add_patch(circ)
-    #fig = pl.show()
-    fig = pl.savefig('../../Papers/IEEE/Figures/matchstarpath_b172_100f.png')
-# -------------------------------------------------------------------------------------
-
-
-# ----------------- Plot Different Centroid Methods on Same Star-------------------------------
-if plot3:
-    print 'saving plots of centroid methods on same star'
-    db = database.Connect()
-    name = db.select('select raw_fn from rawdata where burst_num = 172 limit 1').raw_fn.tolist()[0]
-    img = imgutil.loadimg(name,from_database=True)
-    # find good star
-    centers = centroid.findstars(img)
-    print centers
-    goodstar = []
-    goodstar.append(centers[10])
-    #goodstar = list((tuple(centers[10])) # good centroid at about 1417,275
-
-    (x,y) = goodstar[0][0]
-    (w,h) = goodstar[0][1]
-
-    centroid_iwc   = centroid.imgcentroid(img, goodstar, method="iwc")
-    centroid_cog   = centroid.imgcentroid(img, goodstar, method="cog")
-    centroid_gauss = centroid.imgcentroid(img, goodstar, method="gauss")
-            
-    (frame, (xframe,yframe), frame_centroid) = sm.windowsub(img, (x,y), (w,h), neg=True, scale=1)
-
-    cents = []
-    cents.append((centroid_iwc[0][0]-xframe,centroid_iwc[0][1]-yframe)) 
-    cents.append((centroid_cog[0][0]-xframe,centroid_cog[0][1]-yframe)) 
-    cents.append((centroid_gauss[0][0]-xframe,centroid_gauss[0][1]-yframe)) 
-    print cents
-
-    pl.figure()
-    pl.gray()
-    pl.imshow(frame, cmap=None, norm=None, aspect=None,
-                interpolation='nearest', vmin=0, vmax=2048, origin='upper')
-
-    radius = 1 
-    #iwc            
-    color = 'r'
-    circ = pl.Circle(cents[0], radius, ec=color, fc=color, fill=False)
-    pl.gca().add_patch(circ)
-    #cog            
-    color = 'g'
-    circ = pl.Circle(cents[1], radius, ec=color, fc=color, fill=False)
-    pl.gca().add_patch(circ)
-    #cog            
-    color = 'b'
-    circ = pl.Circle(cents[2], radius, ec=color, fc=color, fill=False)
-    pl.gca().add_patch(circ)
-
-    # actually display it
-    #pl.show()
-    # save it
-    pl.savefig('../../Papers/IEEE/Figures/centroidmethods.png') 
-
-# -----------------------------------------------------------------------------------
-
-
-# ------------Find quaternions:--------------------------
-print 'Find quaternions.'
-quats = []
-for count,matched in enumerate(matched_centroids):
-    # Project 2d vectors into 3d space:
-    Vi2d,Vb2d = zip(*matched)
-    Vi = starmatcher.project3D(Vi2d)
-    Vb = starmatcher.project3D(Vb2d)
-    # Run the Q-Method:
-    quats.append(qmethod.qmethod(Vi,Vb))
-print 'quats',quats
-
-
-# -----------Find variance in quaternions - different methods----------------
-if plot4:
-    print 'Doing variance plots or whatever.'
-    print "Find Variance"
-    print "Filtering frequency below 1.5Hz"
-    motion_frequency=1.5
-    print "Time between images is 0.1 [s]"
-    delta_t=0.1
-    print "Showing plots of filtering"
-    show_plot=1
-    pl.close()
-    var1 = tracking.FindVariance(quats,delta_t=delta_t,motion_frequency=motion_frequency,plot=show_plot)
-    fig=pl.figure(1)
-    fig.savefig('../../Papers/IEEE/Figures/roll_1.5Hz_freq.png')
-    fig=pl.figure(2)
-    fig.savefig('../../Papers/IEEE/Figures/pitch_1.5Hz_freq.png')
-    fig=pl.figure(3)
-    fig.savefig('../../Papers/IEEE/Figures/yaw_1.5Hz_freq.png')
-
-
-# ------------------- END OF DOING STUFFS ------------------------------
+print 'Find roll, pitch, and yaw variances.'
+# Get the roll, pitch, yaw variances:
+delta_t = 0.1 # s
+motion_frequency = 1.5 # Hz
+var_r,var_p,var_y = tracking.FindVariance(quats,delta_t=delta_t,motion_frequency=motion_frequency,plot=plot)
 toc = time.clock()
+print 'RPY Variances: ',var_r,var_p,var_y
 print 'Total time: ' + str(toc - tic) + ' s'
-
-
+ 
+#############################################################
+# Plots:
+#############################################################
+if plot:
+    image0 = imgutil.loadimg(fnames[0],from_database=True)
+    plots.starnum(numstars)
+    plots.starnum(nummatchstars)
+    plots.starpaths(image0,centroids)
+    plots.starpaths(image0,matched_centroids)
+    

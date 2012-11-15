@@ -14,23 +14,12 @@
 # Import
 import os
 import sys
-sys.path.append('../')
-
 from numpy import *
 import time
 
-# Globals
-
-
-
 # -----------------
 # --- FUNCTIONS ---
-# -----------------
-
-def newton(Vi, Vb):
-    
-    return 0    
-    
+# -----------------  
 # -------------------------------------------------------------------------------
 def qmethod(Vi, Vb, W=None):
     '''
@@ -144,7 +133,8 @@ def quat2rot(q):
 # ------------
 
 def main():
-
+    sys.path.append('../')
+    
     # This is the example given in Statistical Attitude Determination
     # http://www.dept.aoe.vt.edu/~cdhall/courses/aoe4140/attde.pdf
     

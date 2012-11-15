@@ -8,9 +8,6 @@ __author__ = 'zachdischner'
              *  Variance calculations from rotation sets
 """
 
-
-
-
 import numpy as np
 import transformations as transform
 import scipy as sp
@@ -20,9 +17,7 @@ import pylab as pylab
 import math
 import sys
 
-
-
-def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=None,order="xyzs"):
+def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False):
     """
         Purpose: Find the variance of a set of quaternions. Low Frequency components are assumed to be invalid
                  and will be discarded. Intended for analyzing high-frequency variations in a set of rotation
@@ -36,13 +31,11 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=None,order="xyz
         Outputs: var - The computed variance of all observations. Meant to be some indication of DayStar performance
     """
     # Hey, do this later smarter
-    if order == "xyzs":
-        quats=[]
-        for ii in range(quaternions.size/4-1):
-            quats.append([quaternions[3][ii],quaternions[1][ii],quaternions[2][ii],quaternions[0][ii]])
-        quaternions=quats
+    quats=[]
+    for q in quaternions:
+        quats.append(np.array(np.hstack([q[3],q[0:3]])))
 
-    [r,p,y]=quat2rpy(quaternions)
+    [r,p,y]=quat2rpy(quats)
     r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll')     #radians
     p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch')     #radians
     y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw')     #radians
@@ -59,7 +52,7 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=None,order="xyz
     return r_var,p_var,y_var
 
 
-def high_pass(series,cutoff=100,delta=1,plot=None,lfilt=None,variable='signal'):
+def high_pass(series,cutoff=100,delta=1,plot=False,lfilt=None,variable='signal'):
     """
         Purpose: High-pass filter a single array series using fourrier transforms.
 
@@ -93,7 +86,7 @@ def high_pass(series,cutoff=100,delta=1,plot=None,lfilt=None,variable='signal'):
     # Inverse fourrier. Get new filtered signal back
     new_series = np.fft.irfft(fft_filt)
 
-    if plot is not None:
+    if plot:
         pylab.figure(num=None, figsize=(13, 7), dpi=80, facecolor='w', edgecolor='k')
         # Signal
         pylab.subplot(2,2,1)

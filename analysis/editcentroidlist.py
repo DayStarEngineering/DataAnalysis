@@ -67,56 +67,36 @@ def dist(x1,x2,y1,y2):
     
 
 # ----------------- 2D to 3D ----------------------
-def project3D(centlist,vpix=2160,hpix=2560,FOV=8.2,pixSize=6.5):
+def project3D(centlist,vpix=2160,hpix=2560,plate_scale=6.5,f=150000):
     '''project3D(): given list of centroid pairs ((xA,yA),(xB,yB)) matched between frames, 
-    returns list of 3D tuples pairs ((xA,yA,zA),(xB,yB,zB))'''
+    returns list of 3D tuples pairs ((xA,yA,zA),(xB,yB,zB))
+    vpix = vertical pixels
+    hpix = horizontal pixels
+    plate_scale = microns/pixel
+    f = focal length in microns
+    '''
         
-    def pos2Dto3D(pos):
+    def pos2Dto3D((xi,yi)):
         '''pos2Dto3D(): returns (x,y,z) given (x,y)'''
-        if type(pos) != tuple:
-            raise RuntimeError('2Dto3D(): (x,y) tuple expected')
-        
-        xi,yi = pos
-        
-        #vpix = 2160 #vertical
-        #hpix = 2560 #horizontal
-        #FOV = 8.2   #[deg]
-        
-        # Pixel FOV
-        # ASSUMPTION: square pixels (with cropping)
-        pixfov = 3600*FOV/hpix  #[arcseconds/pixel]
-
-        # CMOS size
-        #pixSize = 6.5  # [microns/pixel]
-        d = math.sqrt(2)*hpix*pixSize # [microns]
         
         # CMOS center
-        xp = pixSize*hpix/2; #x-center [microns]
-        yp = pixSize*vpix/2; #y-center [microns]
-
-        # Focal length
-        def deg2rad(a):
-            return a/180*math.pi
+        xp = plate_scale*hpix/2; #x-center [microns]
+        yp = plate_scale*vpix/2; #y-center [microns]
         
-        f = d/2/np.tan(deg2rad(FOV/2)) # [microns]
-        #print 'focal ' + str(f)
-        # Convert pixel locations to vectors using LOS Vectors from image
-        # matlab line:
-        # v_i(:,m) = 1/sqrt(f^2 + (xp-xi(m))^2 + (yp-yi(m))^2)*[xp-xi(m); yp-yi(m); f];
+        ff = f*f
+        x = (xp-xi)
+        xx = x*x
+        y = (yp-yi)
+        yy = y*y
+        C = 1/math.sqrt(ff + xx + yy)
         
-        x = 1/math.sqrt(f*f + (xp-xi)*(xp-xi) + (yp-yi)*(yp-yi)) * (xp-xi)
-        y = 1/math.sqrt(f*f + (xp-xi)*(xp-xi) + (yp-yi)*(yp-yi)) * (yp-yi)
-        z = 1/math.sqrt(f*f + (xp-xi)*(xp-xi) + (yp-yi)*(yp-yi)) * f
+        xv = C*x
+        yv = C*y
+        zv = C*f
 
-        v = (x,y,z)
-        return v
-    
-    # main part of function
-    centlist3D = []
-    for pair in centlist:
-        centlist3D.append(pos2Dto3D(pair))
-    return centlist3D
+        return xv,yv,zv
 
+    return map(pos2Dto3D,centlist)
 
 '''
 # Test this shit
