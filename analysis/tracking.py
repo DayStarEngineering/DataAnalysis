@@ -47,11 +47,16 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=None,order="xyz
     p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch')     #radians
     y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw')     #radians
 
-    obs_std = np.sqrt(np.std(r_filt)**2 + np.std(p_filt)**2 + np.std(y_filt)**2)    #Standard deviation
+#    obs_std = np.sqrt(np.std(r_filt)**2 + np.std(p_filt)**2 + np.std(y_filt)**2)    #Standard deviation
+    r_std = 3600*(np.std(r_filt)*180/math.pi)
+    p_std = 3600*(np.std(p_filt)*180/math.pi)
+    y_std = 3600*(np.std(y_filt)*180/math.pi)
+    r_var = r_std**2
+    p_var = p_std**2
+    y_var = y_std**2
+#    var = 3600*(obs_std*180/math.pi)**2         # arcseconds
 
-    var = 3600*(obs_std*180/math.pi)**2         # arcseconds
-
-    return var
+    return r_var,p_var,y_var
 
 
 def high_pass(series,cutoff=100,delta=1,plot=None,lfilt=None,variable='signal'):
