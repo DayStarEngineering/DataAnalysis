@@ -36,7 +36,7 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=None,order="xyz
         Outputs: var - The computed variance of all observations. Meant to be some indication of DayStar performance
     """
     # Hey, do this later smarter
-    if order != "xyzs":
+    if order == "xyzs":
         quats=[]
         for ii in range(quaternions.size/4-1):
             quats.append([quaternions[3][ii],quaternions[1][ii],quaternions[2][ii],quaternions[0][ii]])
