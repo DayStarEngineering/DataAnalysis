@@ -108,9 +108,9 @@ def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0,Row
 
 
             imgTop = DarkColNormalize(imgArray[imgTstart:DRTend,:],top=1,Plot=PlotAll,Method=Method)   # No Dark Columns, Just Dark Rows and pic
-            print "imgTop shape",imgTop.shape
+#            print "imgTop shape",imgTop.shape
             imgBottom = DarkColNormalize(imgArray[DRBstart:imgBend,:],Plot=PlotAll,Method=Method)
-            print "imgBottom shape",imgBottom.shape
+#            print "imgBottom shape",imgBottom.shape
 
             # Normalize Both Images to the same gain setting
             if target is None: # May want to change this to include all the options
@@ -122,7 +122,7 @@ def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0,Row
 
             # Return just the dark or both?
             if not JustDark:
-                NormImg = NormalizeColumnGains(NormImg,target=target)
+                NormImg = NormalizeColumnGains(NormImg,target=target,Method=Method)
 #                if Rows:
 #                    NormImg = NormalizeColumnGains(NormImg,target=target,Rows=Rows)
 
@@ -132,7 +132,7 @@ def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0,Row
                 print "You ToolBag! You are trying to normalize the dark columns of an image with no dark columns!!!"
                 print "flatfield.NormalizeColumnGains   expects a dark column image of size   [2192,2592]"
                 print "Image size passed is:   [%s]" % imgArray.shape
-            NormImg = ImgColNormalize(imgArray)
+            NormImg = ImgColNormalize(imgArray,Method=Method)
 
 
         if Plot:
@@ -153,7 +153,7 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None,Method="Mean"):
                           come first.
     """
     rows,cols = imgArray.shape
-    print "rows",rows,"cols",cols
+#    print "rows",rows,"cols",cols
     
     if top == 0:
         darkrows = imgArray[0:16,:]
@@ -163,15 +163,9 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None,Method="Mean"):
     # Get target normalization (which is median of the top or bottom half including dark rows))
     if target is None:
         target = centroid.frobomad(imgArray)[0]
-#        target = np.mean(imgArray)
 
     # Get normalization factor
     norm_factor=FindNormFactor(target,darkrows,Method=Method)
-#    norm_factor = []
-#    for col in range(0,cols):
-##        norm_factor.append(target/centroid.frobomad(darkrows[:,col])[0])
-#        norm_factor.append(target/np.mean(darkrows[:,col]))
-
     # Apply Normalization Factor
     new_imgArray = imgArray*norm_factor
 
@@ -184,10 +178,8 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None,Method="Mean"):
 
     # Cut off dark rows and columns and return
     if top:
-#        final_image = new_imgArray[0:rows-16,16:cols-16]
         final_image = imgArray[0:1080][:,16:2560+16]
     else:
-#        final_image = new_imgArray[15:rows-1,16:cols-16]
         final_image = imgArray[16:1080+16][:,16:2560+16]
     return final_image
 
@@ -206,21 +198,9 @@ def ImgColNormalize(imgArray,target=None, Rows=0,Method="mean"):
     # Get target normalization
     if target is None:
         target = centroid.frobomad(imgArray)[0]
-#        target = np.mean(imgArray)
 
     # Get normalization factor
     norm_factor=FindNormFactor(target,imgArray,Method=Method)
-#        norm_factor = []
-#    if Rows:
-#        for row in range(0,rows):
-#            norm_factor.append(target/centroid.frobomad(imgArray[row,:])[0])
-#            norm_factor.append(target/np.mean(imgArray[row,:]))
-
-#    else:
-#        for col in range(0,cols):
-#            norm_factor.append(target/centroid.frobomad(imgArray[:,col])[0])
-#            norm_factor.append(target/np.mean(imgArray[:,col]))
-
 
     # Apply Normalization Factor
     new_imgArray = imgArray*norm_factor
@@ -232,7 +212,7 @@ def FindNormFactor(target,imgArray,Method="Mean",Scalar=False):
     """
         Purpose: Find the normilization vector to apply to the image
     """
-
+    print Method
     rows,cols = imgArray.shape
     norm_factor = []
     for col in range(0,cols):
@@ -247,13 +227,14 @@ def FindNormFactor(target,imgArray,Method="Mean",Scalar=False):
         elif Method.lower() == "gangbang":
             norm_factor.append(target/np.mean([np.median(imgArray[:,col]),centroid.frobomad(imgArray[:,col])[0],np.mean(imgArray[:,col]),mode(imgArray[:,col])[0]]))
         else: # Use Kevin's Frobomad
-            print "Invalid normalization method input. Please try using"
+            print "ERROR!!! Invalid normalization method input. Please try using"
             print "mean"
             print "median"
             print "mode"
             print "robustmean"
             print "gangbang"
             print "Just using the Robust Mean By Default"
+            print ""
             norm_factor.append(target/centroid.frobomad(imgArray[:,col])[0])
     return norm_factor
 
