@@ -101,20 +101,16 @@ def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0,Row
     if type(imgArray) == np.ndarray:
         if imgArray.shape == (2192,2592):       #Assumes this is a raw DayStar image
         # useful index numbers
-            imgTstart = 0         # image rows top start
-            imgTend = 1079        # image rows top end
-            DRTstart = 1079       # dark rows top start
-            DRTend = DRTstart+16  # dark rows top end
-            DRBstart = DRTend     # dark rows bottom start
-            DRBend = DRBstart+16  # dark rows bottom end
-            imgBstart = DRBend    # image rows bottom start
-            imgBend = 2159+32     # image rows bottom start
-            DCstart = 16          # columns of dark rows start
-            DCend = DCstart+2559  # columns of dark rows end
+            imgTstart = 0           # image rows top start
+            DRTend = 1080+16        # dark rows top end
+            DRBstart = DRTend       # dark rows bottom start            
+            imgBend = 2160+32       # image rows bottom start
 
 
-            imgTop = DarkColNormalize(imgArray[imgTstart:DRTend+1,:],top=1,Plot=PlotAll,Method=Method)   # No Dark Columns, Just Dark Rows and pic
+            imgTop = DarkColNormalize(imgArray[imgTstart:DRTend,:],top=1,Plot=PlotAll,Method=Method)   # No Dark Columns, Just Dark Rows and pic
+            print "imgTop shape",imgTop.shape
             imgBottom = DarkColNormalize(imgArray[DRBstart:imgBend,:],Plot=PlotAll,Method=Method)
+            print "imgBottom shape",imgBottom.shape
 
             # Normalize Both Images to the same gain setting
             if target is None: # May want to change this to include all the options
@@ -157,12 +153,14 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None,Method="Mean"):
                           come first.
     """
     rows,cols = imgArray.shape
+    print "rows",rows,"cols",cols
+    
     if top == 0:
         darkrows = imgArray[0:16,:]
     else:
         darkrows = imgArray[rows-16:rows,:]
 
-    # Get target normalization
+    # Get target normalization (which is median of the top or bottom half including dark rows))
     if target is None:
         target = centroid.frobomad(imgArray)[0]
 #        target = np.mean(imgArray)
@@ -186,9 +184,11 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None,Method="Mean"):
 
     # Cut off dark rows and columns and return
     if top:
-        final_image = new_imgArray[0:rows-16,16:cols-16]
+#        final_image = new_imgArray[0:rows-16,16:cols-16]
+        final_image = imgArray[0:1080][:,16:2560+16]
     else:
-        final_image = new_imgArray[15:rows-1,16:cols-16]
+#        final_image = new_imgArray[15:rows-1,16:cols-16]
+        final_image = imgArray[16:1080+16][:,16:2560+16]
     return final_image
 
 
@@ -241,7 +241,7 @@ def FindNormFactor(target,imgArray,Method="Mean",Scalar=False):
         elif Method.lower() == "median":
             norm_factor.append(target/np.median(imgArray[:,col]))
         elif Method.lower() == "mode":
-            norm_factor.append(target/mode(imgArray[:,col]))
+            norm_factor.append(target/mode(imgArray[:,col])[0])
         elif Method.lower() == "robustmean":
             norm_factor.append(target/centroid.frobomad(imgArray[:,col])[0])
         elif Method.lower() == "gangbang":
