@@ -101,18 +101,13 @@ def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0,Row
     if type(imgArray) == np.ndarray:
         if imgArray.shape == (2192,2592):       #Assumes this is a raw DayStar image
         # useful index numbers
-            imgTstart = 0         # image rows top start
-            imgTend = 1079        # image rows top end
-            DRTstart = 1080       # dark rows top start
-            DRTend = DRTstart+16  # dark rows top end
-            DRBstart = DRTend+1     # dark rows bottom start
-            DRBend = DRBstart+16  # dark rows bottom end
-            imgBstart = DRBend+1    # image rows bottom start
-            imgBend = 2159+32     # image rows bottom start
-            DCstart = 16          # columns of dark rows start
-            DCend = DCstart+2559  # columns of dark rows end
+            imgTstart = 0           # image rows top start
+            DRTend = 1080+16        # dark rows top end
+            DRBstart = DRTend       # dark rows bottom start            
+            imgBend = 2160+32       # image rows bottom start
 
-            imgTop = DarkColNormalize(imgArray[imgTstart:DRTend+1,:],top=1,Plot=PlotAll,Method=Method)   # No Dark Columns, Just Dark Rows and pic
+
+            imgTop = DarkColNormalize(imgArray[imgTstart:DRTend,:],top=1,Plot=PlotAll,Method=Method)   # No Dark Columns, Just Dark Rows and pic
             print "imgTop shape",imgTop.shape
             imgBottom = DarkColNormalize(imgArray[DRBstart:imgBend,:],Plot=PlotAll,Method=Method)
             print "imgBottom shape",imgBottom.shape
@@ -158,6 +153,8 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None,Method="Mean"):
                           come first.
     """
     rows,cols = imgArray.shape
+    print "rows",rows,"cols",cols
+    
     if top == 0:
         darkrows = imgArray[0:16,:]
     else:
