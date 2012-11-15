@@ -190,7 +190,7 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None,Method="Mean"):
         final_image = imgArray[0:1080][:,16:2560+16]
     else:
 #        final_image = new_imgArray[15:rows-1,16:cols-16]
-        final_image = imgArray[0:1080+16][:,16:2560+16]
+        final_image = imgArray[16:1080+16][:,16:2560+16]
     return final_image
 
 
