@@ -143,7 +143,7 @@ def dispimg(imgArray, viewfactor=1, fignum=None):
     #Zach-changed it to just get the new figure number
     if fignum:
         pl.figure(fignum)
-    else
+    else:
         f = pl.figure
         fignum = f.number
 
