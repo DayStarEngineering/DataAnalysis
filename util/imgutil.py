@@ -137,23 +137,21 @@ def cropimg(imgArray):
     return img
 
 # -----------------------------Display Image-------------------------------------
-def dispimg(imgArray, viewfactor=1, fignum = 1):
+def dispimg(imgArray, viewfactor=1, fignum=None):
     '''dispimg(): uses pylab, imshow to display a numpy ndarray. viewfactor multiplies
     the entire image by the viewfactor.'''
     #Zach-changed it to just get the new figure number
-    if fignum==1:
-        f=pl.figure()
-        fignum=f.number
-
-    try:
+    if fignum:
         pl.figure(fignum)
-        pl.gray()
-        pl.imshow(np.multiply(imgArray,viewfactor), cmap=None, norm=None, aspect=None, \
-                                interpolation='nearest', vmin=0, vmax=2048, origin='upper')
-        pl.colorbar()  
-        pl.show()
-    except: 
-        raise RuntimeError('dispimg(): input must be type np.ndarray and viewfactor must be an int')
+    else
+        f = pl.figure
+        fignum = f.number
+
+    pl.gray()
+    pl.imshow(np.multiply(imgArray,viewfactor), cmap=None, norm=None, aspect=None, \
+                            interpolation='nearest', vmin=0, vmax=2048, origin='upper')
+    pl.colorbar()  
+    pl.show()
 
 # -----------------------------Display Image with Cenroids Cirled ------------------------------
 def circstars(imgArray,centlist,radius=None,color=None,viewfactor=1,fignum = 1):
