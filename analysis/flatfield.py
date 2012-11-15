@@ -186,9 +186,11 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None,Method="Mean"):
 
     # Cut off dark rows and columns and return
     if top:
-        final_image = new_imgArray[0:rows-16,16:cols-16]
+#        final_image = new_imgArray[0:rows-16,16:cols-16]
+        final_image = imgArray[0:1080][:,16:2560+16]
     else:
-        final_image = new_imgArray[15:rows-1,16:cols-16]
+#        final_image = new_imgArray[15:rows-1,16:cols-16]
+        final_image = imgArray[0:1080+16][:,16:2560+16]
     return final_image
 
 
@@ -241,7 +243,7 @@ def FindNormFactor(target,imgArray,Method="Mean",Scalar=False):
         elif Method.lower() == "median":
             norm_factor.append(target/np.median(imgArray[:,col]))
         elif Method.lower() == "mode":
-            norm_factor.append(target/mode(imgArray[:,col]))
+            norm_factor.append(target/mode(imgArray[:,col])[0])
         elif Method.lower() == "robustmean":
             norm_factor.append(target/centroid.frobomad(imgArray[:,col])[0])
         elif Method.lower() == "gangbang":
