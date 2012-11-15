@@ -6,7 +6,6 @@ __author__ = 'zachdischner'
              *  Vignette Removal
              *  Background/Noise Subtraction?
 
-             DO IT BY MEAN OR MEDIAN??? Re impliment so I can do median/mean finding
 """
 
 import numpy as np
@@ -20,11 +19,13 @@ import time
 #                Counter(col).most_common(1)[0][0]
 
 def test_Normalize_proc(Method="mean"):
+    "Use this to test the procedural differences in image normalization"
     fn = "/Users/zachdischner/Desktop/StarTest_9_9_2012/Gray/img_1347267746_089087_00006_00017_0_gray.tif"
     fn = "/Users/zachdischner/Desktop/img_1348370245_127071_00175_00000_1.dat"
     img=imgutil.loadimg(fn,load_full=1)
 #    imgutil.dispimg(img,viewfactor=4.)
-
+    print "Using " + Method + " Method for normalization"
+    print ""
     print "Original image mean and standard deviation:  %s    and    %s  " % (np.mean(img),np.std(img))
 
     i2 = NormalizeColumnGains(img,Plot=1,JustDark=1,Method=Method)
@@ -234,16 +235,25 @@ def FindNormFactor(target,imgArray,Method="Mean",Scalar=False):
 
     rows,cols = imgArray.shape
     norm_factor = []
-    for col in range(0..cols):
+    for col in range(0,cols):
         if Method.lower() == "mean":
             norm_factor.append(target/np.mean(imgArray[:,col]))
         elif Method.lower() == "median":
             norm_factor.append(target/np.median(imgArray[:,col]))
         elif Method.lower() == "mode":
             norm_factor.append(target/mode(imgArray[:,col]))
+        elif Method.lower() == "robustmean":
+            norm_factor.append(target/centroid.frobomad(imgArray[:,col])[0])
         elif Method.lower() == "gangbang":
             norm_factor.append(target/np.mean([np.median(imgArray[:,col]),centroid.frobomad(imgArray[:,col])[0],np.mean(imgArray[:,col]),mode(imgArray[:,col])[0]]))
         else: # Use Kevin's Frobomad
+            print "Invalid normalization method input. Please try using"
+            print "mean"
+            print "median"
+            print "mode"
+            print "robustmean"
+            print "gangbang"
+            print "Just using the Robust Mean By Default"
             norm_factor.append(target/centroid.frobomad(imgArray[:,col])[0])
     return norm_factor
 
