@@ -19,23 +19,23 @@ import time
 # Get the mode   from collections import Counter
 #                Counter(col).most_common(1)[0][0]
 
-def test_Normalize():
+def test_Normalize_proc(Method="mean"):
     fn = "/Users/zachdischner/Desktop/StarTest_9_9_2012/Gray/img_1347267746_089087_00006_00017_0_gray.tif"
     fn = "/Users/zachdischner/Desktop/img_1348370245_127071_00175_00000_1.dat"
     img=imgutil.loadimg(fn,load_full=1)
 #    imgutil.dispimg(img,viewfactor=4.)
 
-    print "Original image Rmean and standard deviation:  %s    and    %s  " % (np.median(img),np.std(img))
+    print "Original image mean and standard deviation:  %s    and    %s  " % (np.mean(img),np.std(img))
 
-    i2 = NormalizeColumnGains(img,Plot=1,JustDark=1)
-    pylab.title('Just Dark Row Normalization')
+    i2 = NormalizeColumnGains(img,Plot=1,JustDark=1,Method=Method)
+    pylab.title('Just Dark Row Normalization Using ' + Method )
     print "Just using Dark rows, image size is: "
     print i2.shape
-    print "Dark Row based image Rmean and standard deviation:  %s    and    %s  " % (np.median(i2),np.std(i2))
+    print "Dark Row based image mean and standard deviation:  %s    and    %s  " % (np.mean(i2),np.std(i2))
 
 
-    i3 = NormalizeColumnGains(img,Plot=1)
-    pylab.title('Using Dark row and Whole Image Rmean')
+    i3 = NormalizeColumnGains(img,Plot=1,Method=Method)
+    pylab.title('Using Dark row and Whole Image Using ' + Method )
 
 
 
@@ -44,25 +44,25 @@ def test_Normalize():
 
 #    imgutil.dispimg(i3,viewfactor=4.)
 #    pylab.title('DR + Image Norm ')
-    print "DR + Image Column Rmean and standard deviation:  %s    and    %s  " % (np.median(i3),np.std(i3))
+    print "DR + Image Column mean and standard deviation:  %s    and    %s  " % (np.mean(i3),np.std(i3))
 
 
     ## DR and Row and Column Normalization
-    t=time.time()
-    img=imgutil.loadimg(fn)
-    i4 = NormalizeColumnGains(img)
-    # Also do row normalization
-    i4 = NormalizeColumnGains(img,Plot=1,Rows=1)
-    pylab.title('Using DR + Column + Row Rmean')
-    print "Took %s seconds" % (time.time()-t)
-    print "Now using the entire image, image size is: "
-    print i4.shape
+#    t=time.time()
+#    img=imgutil.loadimg(fn)
+#    i4 = NormalizeColumnGains(img)
+#    # Also do row normalization
+#    i4 = NormalizeColumnGains(img,Plot=1,Rows=1)
+#    pylab.title('Using DR + Column + Row Using ' + Method )
+#    print "Took %s seconds" % (time.time()-t)
+#    print "Now using the entire image, image size is: "
+#    print i4.shape
 
 #    imgutil.dispimg(i4,viewfactor=4.)
 
-    print "DR + Row + Col Rmean and standard deviation:  %s    and    %s  " % (np.median(i4),np.std(i4))
+#    print "DR + Row + Col Rmean and standard deviation:  %s    and    %s  " % (np.median(i4),np.std(i4))
 
-    
+
     pylab.figure()
     pylab.subplot(2,2,1)
     pylab.imshow(np.multiply(img[0::5,0::5],4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
@@ -70,22 +70,22 @@ def test_Normalize():
 
     pylab.subplot(2,2,2)
     pylab.imshow(np.multiply(i2[0::5,0::5],4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
-    pylab.title('DR and Col')
+    pylab.title('DR and Col Using ' + Method)
 
 
     pylab.subplot(2,2,3)
     pylab.imshow(np.multiply(i3[0::5,0::5],4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
     #    imgutil.dispimg(i2,viewfactor=4)
-    pylab.title("Dark Row Rmean normalization")
+    pylab.title("Dark Row normalization Using " + Method )
 
-    pylab.subplot(2,2,4)
-    pylab.imshow(np.multiply(i4[0::5,0::5],4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
-    pylab.title('Dr and Col and Row Norm ')
+#    pylab.subplot(2,2,4)
+#    pylab.imshow(np.multiply(i4[0::5,0::5],4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
+#    pylab.title('Dr and Col and Row Norm ')
 
 
-    return i4
+    return i3
 
-def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0,Rows=0):
+def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0,Rows=0,Method="Mean"):
     """
         Purpose: Normalize an image array to remove column gain bias. Designed for DayStar images.
 
@@ -112,11 +112,11 @@ def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0,Row
             DCend = DCstart+2559  # columns of dark rows end
 
 
-            imgTop = DarkColNormalize(imgArray[imgTstart:DRTend+1,:],top=1,Plot=PlotAll)   # No Dark Columns, Just Dark Rows and pic
-            imgBottom = DarkColNormalize(imgArray[DRBstart:imgBend,:],Plot=PlotAll)
+            imgTop = DarkColNormalize(imgArray[imgTstart:DRTend+1,:],top=1,Plot=PlotAll,Method=Method)   # No Dark Columns, Just Dark Rows and pic
+            imgBottom = DarkColNormalize(imgArray[DRBstart:imgBend,:],Plot=PlotAll,Method=Method)
 
             # Normalize Both Images to the same gain setting
-            if target is None:
+            if target is None: # May want to change this to include all the options
                 target=np.mean([np.mean(imgTop),np.mean(imgBottom)])
             topFactor = target/np.mean(imgTop)
             bottomFactor = target/np.mean(imgBottom)
@@ -126,8 +126,8 @@ def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0,Row
             # Return just the dark or both?
             if not JustDark:
                 NormImg = NormalizeColumnGains(NormImg,target=target)
-                if Rows:
-                    NormImg = NormalizeColumnGains(NormImg,target=target,Rows=Rows)
+#                if Rows:
+#                    NormImg = NormalizeColumnGains(NormImg,target=target,Rows=Rows)
 
 
         else:
@@ -141,10 +141,12 @@ def NormalizeColumnGains(imgArray,target=None,PlotAll=None,Plot=1,JustDark=0,Row
         if Plot:
             PlotComparison(imgArray,NormImg,title="Full Image Gain Normalization")
         return NormImg
+
     else:
         raise RuntimeError('numpy ndarray input required. Try using loadimg() first.')
 
-def DarkColNormalize(imgArray,top=0,target=None,Plot=None):
+
+def DarkColNormalize(imgArray,top=0,target=None,Plot=None,Method="Mean"):
     """
         Purpose: Normalize image array based on dark columns.
 
@@ -161,13 +163,15 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None):
 
     # Get target normalization
     if target is None:
-        target = np.mean(imgArray)
+        target = centroid.frobomad(imgArray)[0]
+#        target = np.mean(imgArray)
 
     # Get normalization factor
-    norm_factor = []
-    for col in range(0,cols):
-#        norm_factor.append(target/centroid.frobomad(darkrows[:,col])[0])
-        norm_factor.append(target/np.mean(darkrows[:,col]))
+    norm_factor=FindNormFactor(target,darkrows,Method=Method)
+#    norm_factor = []
+#    for col in range(0,cols):
+##        norm_factor.append(target/centroid.frobomad(darkrows[:,col])[0])
+#        norm_factor.append(target/np.mean(darkrows[:,col]))
 
     # Apply Normalization Factor
     new_imgArray = imgArray*norm_factor
@@ -187,8 +191,7 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=None):
     return final_image
 
 
-
-def ImgColNormalize(imgArray,target=None, Rows=0):
+def ImgColNormalize(imgArray,target=None, Rows=0,Method="mean"):
     "THIS WONT WORK UNLESS LOOKING AT SOMETHING FLAT"
     """
     Purpose: Normalize image array based on dark columns.
@@ -201,25 +204,48 @@ def ImgColNormalize(imgArray,target=None, Rows=0):
 
     # Get target normalization
     if target is None:
-        target = np.mean(imgArray)
+        target = centroid.frobomad(imgArray)[0]
+#        target = np.mean(imgArray)
 
     # Get normalization factor
-        norm_factor = []
-    if Rows:
-        for row in range(0,rows):
+    norm_factor=FindNormFactor(target,imgArray,Method=Method)
+#        norm_factor = []
+#    if Rows:
+#        for row in range(0,rows):
 #            norm_factor.append(target/centroid.frobomad(imgArray[row,:])[0])
-            norm_factor.append(target/np.mean(imgArray[row,:]))
+#            norm_factor.append(target/np.mean(imgArray[row,:]))
 
-    else:
-        for col in range(0,cols):
+#    else:
+#        for col in range(0,cols):
 #            norm_factor.append(target/centroid.frobomad(imgArray[:,col])[0])
-            norm_factor.append(target/np.mean(imgArray[:,col]))
+#            norm_factor.append(target/np.mean(imgArray[:,col]))
 
 
     # Apply Normalization Factor
     new_imgArray = imgArray*norm_factor
 
     return new_imgArray
+
+
+def FindNormFactor(target,imgArray,Method="Mean",Scalar=False):
+    """
+        Purpose: Find the normilization vector to apply to the image
+    """
+
+    rows,cols = imgArray.shape
+    norm_factor = []
+    for col in range(0..cols):
+        if Method.lower() == "mean":
+            norm_factor.append(target/np.mean(imgArray[:,col]))
+        elif Method.lower() == "median":
+            norm_factor.append(target/np.median(imgArray[:,col]))
+        elif Method.lower() == "mode":
+            norm_factor.append(target/mode(imgArray[:,col]))
+        elif Method.lower() == "gangbang":
+            norm_factor.append(target/np.mean([np.median(imgArray[:,col]),centroid.frobomad(imgArray[:,col])[0],np.mean(imgArray[:,col]),mode(imgArray[:,col])[0]]))
+        else: # Use Kevin's Frobomad
+            norm_factor.append(target/centroid.frobomad(imgArray[:,col])[0])
+    return norm_factor
 
 
 def mode(col):
@@ -282,3 +308,15 @@ def PlotComparison(old_img,new_img,title="Title"):
     pylab.xlabel('Hist')
     pylab.ylabel('New Rand Selection Intensity')
 
+
+
+#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
+#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^
+# Jeds section
+
+
+
+
+# Jeds section
+#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
+#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
