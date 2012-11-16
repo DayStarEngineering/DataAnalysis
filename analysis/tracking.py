@@ -32,8 +32,11 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False):
     """
     # Hey, do this later smarter
     quats=[]
+    qtmp=quaternions[0]
     for q in quaternions:
-        quats.append(np.array(np.hstack([q[3],q[0:3]])))
+        # Get rotation from epoch
+        qtmp=transform.quaternion_multiply(qtmp,q)      # Multiply each quaternion by the sum of all previous quaternions
+        quats.append(np.array(np.hstack([qtmp[3],qtmp[0:3]])))
 
     [r,p,y]=quat2rpy(quats)
     r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll')     #radians
