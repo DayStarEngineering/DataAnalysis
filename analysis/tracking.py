@@ -93,14 +93,14 @@ def high_pass(series,cutoff=100,delta=1,plot=False,lfilt=None,variable='signal')
         pylab.figure(num=None, figsize=(13, 7), dpi=80, facecolor='w', edgecolor='k')
         # Signal
         pylab.subplot(2,2,1)
-        pylab.plot(np.arange(0,ns*delta,delta),series)
-#        pylab.plot(series)
+#        pylab.plot(np.arange(0,ns*delta,delta),series)
+        pylab.plot(series)
         pylab.xlabel('Time')
         pylab.ylabel(variable)
 
         pylab.subplot(2,2,3)
-#        pylab.plot(new_series)
-        pylab.plot(np.arange(0,ns*delta,delta),new_series)
+        pylab.plot(new_series)
+#        pylab.plot(np.arange(0,ns*delta,delta),new_series)
         pylab.xlabel('Time')
         pylab.ylabel('Filtered ' + variable)
 
