@@ -144,7 +144,7 @@ def dispimg(imgArray, viewfactor=1, fignum=None):
     if fignum:
         pl.figure(fignum)
     else:
-        f = pl.figure
+        f = pl.figure()
         fignum = f.number
 
     pl.gray()
