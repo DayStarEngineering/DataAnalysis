@@ -92,7 +92,11 @@ def test_Normalize_proc(Method="mean"):
 
     return i3
 
-def NormalizeColumnGains(imgArray,target=None,PlotAll=0,Plot=1,JustDark=0,Rows=0,Method="Mean",Wiener=0):
+
+
+
+
+def NormalizeColumnGains(imgArray,target=None,PlotAll=0,Plot=0,JustDark=0,Rows=0,Method="Mean",Wiener=0):
     """
         Purpose: Normalize an image array to remove column gain bias. Designed for DayStar images.
 
@@ -258,7 +262,7 @@ def mode(col):
     return Counter(col).most_common(1)[0]
 
 def smooth(data,winsize=10):
-    window=np.ones(int(winsize))/float(winsize)
+    window=np.ones(int(winsize))/float(winsize)   # Want this to be more of a curve, summing to 1
     data2=np.convolve(data,window,'same')
 
 
