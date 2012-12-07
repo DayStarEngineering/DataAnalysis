@@ -5,6 +5,13 @@ import DayStarDB
 import sys
 import subprocess
 
+# To use the raw database, do somethign like:
+#   >>> raw=RawData.Connect()
+#   >>> raw.find(stuff)
+#   >>> raw.insert(stuff)
+#
+# See all method descriptions and documentation in "DayStarDB"
+
 
 class Connect(DayStarDB.DatabaseConnect):
     def __init__(self,debug=0):
