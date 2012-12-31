@@ -255,7 +255,7 @@ def noisy_sin():
 
 
 # Convert a list of arrays of quaternions to arrays of corresponding roll, pitch, and yaw values.
-def quat2ypr(quaternions):
+def quat2ypr(quaternions,method='transform'):
     """
         Purpose: Convert a list of arrays of quaternions to Euler angles (roll,pitch,yaw)
         Inputs: quaternions - list of quaternion arrays. In the form of 'SXYZ' I THINK?!?!?
@@ -268,7 +268,10 @@ def quat2ypr(quaternions):
     pitch=[]
     yaw=[]
     for q in quaternions:
-        YPR=transform.euler_from_quaternion(q, axes='szyx')   # default is 'sxyz'
+        if method is 'transform':
+            YPR=transform.euler_from_quaternion(q, axes='rzyx')   # default is 'sxyz'
+        else:
+            YPR=
         roll.append(YPR[2])
         pitch.append(YPR[1])
         yaw.append(YPR[0])
