@@ -32,7 +32,7 @@ image = imgutil.loadimg(fname,from_database=True)
 image = flatfield.NormalizeColumnGains(image,Plot=0,Wiener=0)
 
 # Find star centroids:
-(centers) = centroid.findstars(image,zreject=3, zthresh=3.05, zpeakthresh=5, min_pix_per_star=6, max_pix_per_star=60, oblongness=2,debug=True)
+(centers) = centroid.findstars(image,zreject=3, zthresh=3.05, zpeakthresh=5, min_pix_per_star=5, max_pix_per_star=60, oblongness=2,debug=True)
 centroids = centroid.imgcentroid(image,centers)
 
 # Display image with stars circled:
