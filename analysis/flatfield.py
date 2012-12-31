@@ -20,10 +20,9 @@ __author__ = 'zachdischner'
                           flatfield.NormalizeColumnGains(raw_img,Method='mode')
                           flatfield.NormalizeColumnGains(raw_img,Method='robustmean')
                           flatfield.NormalizeColumnGains(raw_img,Method='gangbang')
-
-
 """
 
+# IMPORTS
 import numpy as np
 import pylab as pylab
 import math
@@ -35,64 +34,10 @@ import time
 # Get the mode   from collections import Counter
 #                Counter(col).most_common(1)[0][0]
 
-def test_Normalize_proc(Method="mean"):
-    "Use this to test the procedural differences in image normalization"
-    fn = "/Users/zachdischner/Desktop/StarTest_9_9_2012/Gray/img_1347267746_089087_00006_00017_0_gray.tif"
-    fn = "/Users/zachdischner/Desktop/img_1348370245_127071_00175_00000_1.dat"
-#    fn = "/Users/zachdischner/Desktop/img.tif"
-    img=imgutil.loadimg(fn,load_full=1)
-#
-    print "Using " + Method + " Method for normalization"
-    print ""
-    print "Original image mean and standard deviation:  %s    and    %s  " % (np.mean(img),np.std(img))
-
-    i2 = NormalizeColumnGains(img,Plot=1,JustDark=1,Method=Method)
-    pylab.title('Just Dark Row Normalization Using ' + Method )
-    print "Just using Dark rows, image size is: "
-    print i2.shape
-    print "Dark Row based image mean and standard deviation:  %s    and    %s  " % (np.mean(i2),np.std(i2))
-
-
-    i3 = NormalizeColumnGains(img,Plot=1,Method=Method)
-    pylab.title('Using Dark row and Whole Image Using ' + Method )
-
-
-
-    print "Now using the entire image, image size is: "
-    print i3.shape
-    print "DR + Image Column mean and standard deviation:  %s    and    %s  " % (np.mean(i3),np.std(i3))
-
-    print "Adding a Wiener Filter"
-    iwiener=NormalizeColumnGains(img,Plot=1,Method=Method,Wiener=1)
-    print "DR + Image Column  + Wiener mean and standard deviation:  %s    and    %s  " % (np.mean(iwiener),np.std(iwiener))
-
-
-    pylab.figure()
-    pylab.subplot(2,2,1)
-    pylab.imshow(np.multiply(img,4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
-    pylab.title('Original Image')
-
-    pylab.subplot(2,2,2)
-    pylab.imshow(np.multiply(i2,4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
-    pylab.title("Dark Row normalization Using " + Method )
-
-
-    pylab.subplot(2,2,3)
-    pylab.imshow(np.multiply(i3,4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
-    pylab.title('DR and Img Col Using ' + Method)
-
-    pylab.subplot(2,2,4)
-    pylab.imshow(np.multiply(iwiener,4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
-    pylab.title('Adding Wiener Filter to ' + Method)
-
-    imgutil.dispimg(i3,viewfactor=4.)
-    pylab.title('DR + IMGnorm')
-    imgutil.dispimg(iwiener,viewfactor=4.)
-    pylab.title('DR + IMGnorm + Wiener')
-
-    return i3
-
-def NormalizeColumnGains(imgArray,target=None,PlotAll=0,Plot=1,JustDark=0,Rows=0,Method="Mean",Wiener=0):
+# ----------------------------------------------------------------------------
+# ----------------------- Normalize Column Gains -----------------------------
+# ----------------------------------------------------------------------------
+def NormalizeColumnGains(imgArray,target=None,PlotAll=0,Plot=0,JustDark=0,Rows=0,Method="Mean",Wiener=0):
     """
         Purpose: Normalize an image array to remove column gain bias. Designed for DayStar images.
 
@@ -104,55 +49,56 @@ def NormalizeColumnGains(imgArray,target=None,PlotAll=0,Plot=1,JustDark=0,Rows=0
     """
 #    img2=numpy.append(img,img,axis=0)
 
-    if type(imgArray) == np.ndarray:
-        if imgArray.shape == (2192,2592):       #Assumes this is a raw DayStar image
-        # useful index numbers
-            imgTstart = 0           # image rows top start
-            DRTend = 1080+16        # dark rows top end
-            DRBstart = DRTend       # dark rows bottom start            
-            imgBend = 2160+32       # image rows bottom start
+    if not isinstance(imgArray, np.ndarray):
+        raise RuntimeError('numpy ndarray input required. Try using loadimg() first.')
+    
+    if imgArray.shape == (2192,2592):       #Assumes this is a raw DayStar image
+    # useful index numbers
+        imgTstart = 0           # image rows top start
+        DRTend = 1080+16        # dark rows top end
+        DRBstart = DRTend       # dark rows bottom start            
+        imgBend = 2160+32       # image rows bottom start
 
 
-            imgTop = DarkColNormalize(imgArray[imgTstart:DRTend,:],top=1,Plot=PlotAll,Method=Method)   # No Dark Columns, Just Dark Rows and pic
+        imgTop = DarkColNormalize(imgArray[imgTstart:DRTend,:], top=1, Plot=PlotAll, Method=Method)   # No Dark Columns, Just Dark Rows and pic
 #            print "imgTop shape",imgTop.shape
-            imgBottom = DarkColNormalize(imgArray[DRBstart:imgBend,:],Plot=PlotAll,Method=Method)
+        imgBottom = DarkColNormalize(imgArray[DRBstart:imgBend,:],Plot=PlotAll,Method=Method)
 #            print "imgBottom shape",imgBottom.shape
 
-            # Normalize Both Images to the same gain setting
-            if target is None: # May want to change this to include all the options
-                target=np.mean([np.mean(imgTop),np.mean(imgBottom)])
-            topFactor = target/np.mean(imgTop)
-            bottomFactor = target/np.mean(imgBottom)
+        # Normalize Both Images to the same gain setting
+        if target is None: # May want to change this to include all the options
+            target=np.mean([np.mean(imgTop),np.mean(imgBottom)])
+        topFactor = target/np.mean(imgTop)
+        bottomFactor = target/np.mean(imgBottom)
 
-            NormImg = np.append(imgTop*topFactor,imgBottom*bottomFactor,axis=0)
+        NormImg = np.append(imgTop*topFactor,imgBottom*bottomFactor,axis=0)
 
-            # Return just the dark or both?
-            if not JustDark:
-                NormImg = NormalizeColumnGains(NormImg,target=target,Method=Method)
+        # Return just the dark or both?
+        if not JustDark:
+            NormImg = NormalizeColumnGains(NormImg,target=target,Method=Method)
 #                if Rows:
 #                    NormImg = NormalizeColumnGains(NormImg,target=target,Rows=Rows)
 
 
-        else:
-            if JustDark:
-                print "You ToolBag! You are trying to normalize the dark columns of an image with no dark columns!!!"
-                print "flatfield.NormalizeColumnGains   expects a dark column image of size   [2192,2592]"
-                print "Image size passed is:   [%s]" % imgArray.shape
-            NormImg = ImgColNormalize(imgArray,Method=Method)
-
-
-        if Plot:
-            PlotComparison(imgArray,NormImg,title="Full Image Gain Normalization")
-
-        if Wiener:
-            NormImg = signal.wiener(NormImg)
-
-        return NormImg
-
     else:
-        raise RuntimeError('numpy ndarray input required. Try using loadimg() first.')
+        if JustDark:
+            print "You ToolBag! You are trying to normalize the dark columns of an image with no dark columns!!!"
+            print "flatfield.NormalizeColumnGains   expects a dark column image of size   [2192,2592]"
+            print "Image size passed is:   [%s]" % imgArray.shape
+        NormImg = ImgColNormalize(imgArray,Method=Method)
 
 
+    if Plot:
+        PlotComparison(imgArray,NormImg,title="Full Image Gain Normalization")
+
+    if Wiener:
+        NormImg = signal.wiener(NormImg)
+
+    return NormImg
+
+#----------------------------------------------------------------------------
+# ----------------------- Dark Column Normalize -----------------------------
+# ---------------------------------------------------------------------------
 def DarkColNormalize(imgArray,top=0,target=None,Plot=0,Method="Mean"):
     """
         Purpose: Normalize image array based on dark columns.
@@ -197,8 +143,12 @@ def DarkColNormalize(imgArray,top=0,target=None,Plot=0,Method="Mean"):
         final_image = new_imgArray[0:1080][:,16:2560+16]
     else:
         final_image = new_imgArray[16:1080+16][:,16:2560+16]
+        
     return final_image
 
+#-----------------------------------------------------------------------------
+# ----------------------- Image Column Normalize -----------------------------
+# ----------------------------------------------------------------------------
 
 def ImgColNormalize(imgArray,target=None, Rows=0,Method="mean"):
     "THIS WONT WORK UNLESS LOOKING AT SOMETHING FLAT"
@@ -223,6 +173,9 @@ def ImgColNormalize(imgArray,target=None, Rows=0,Method="mean"):
 
     return new_imgArray
 
+#-----------------------------------------------------------------------------
+# ----------------------- Find Norm Form Factor ------------------------------
+# ----------------------------------------------------------------------------
 
 def FindNormFactor(target,imgArray,Method="Mean",Scalar=False):
     """
@@ -253,20 +206,14 @@ def FindNormFactor(target,imgArray,Method="Mean",Scalar=False):
             norm_factor.append(target/centroid.frobomad(imgArray[:,col])[0])
     return norm_factor
 
-
-def mode(col):
-    return Counter(col).most_common(1)[0]
-
-def smooth(data,winsize=10):
-    window=np.ones(int(winsize))/float(winsize)
-    data2=np.convolve(data,window,'same')
-
-
-
+#-----------------------------------------------------------------------------
+# --------------------------- Plot Comparison --------------------------------
+# ----------------------------------------------------------------------------
 
 def PlotComparison(old_img,new_img,title="Title"):
     """
-        Purpose: Generate a 2x2 plot showing image statistics to compare before/after gain normalization
+        Purpose: Generate a 2x2 plot showing image statistics to compare before/after 
+        gain normalization.
 
         Inputs: -old_img {numpy array}- Original pre-normalized image
                 -old_img {numpy array}- Original pre-normalized image
@@ -315,14 +262,83 @@ def PlotComparison(old_img,new_img,title="Title"):
     pylab.ylabel('New Rand Selection Intensity')
 
 
+#-----------------------------------------------------------------------------
+# -------------------------- Helper Functions --------------------------------
+# ----------------------------------------------------------------------------
 
-#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
-#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^
-# Jeds section
+def mode(col):
+    return Counter(col).most_common(1)[0]
+
+def smooth(data,winsize=10):
+    window=np.ones(int(winsize))/float(winsize)   # Want this to be more of a curve, summing to 1
+    data2=np.convolve(data,window,'same')
+
+##############################################################################
+# -------------------------------- MAIN --------------------------------------
+##############################################################################
+def main():
+    '''
+    Use this to test the procedural differences in image normalization"
+    '''
+    
+    # Method
+    Method = "mean"
+    
+    # Load image
+    fn = "/Users/zachdischner/Desktop/StarTest_9_9_2012/Gray/img_1347267746_089087_00006_00017_0_gray.tif"
+    #fn = "/Users/zachdischner/Desktop/img_1348370245_127071_00175_00000_1.dat"
+    #fn = "/Users/zachdischner/Desktop/img.tif"
+    img=imgutil.loadimg(fn,load_full=1)
+
+    # Print means and standard deviations
+    print "Using " + Method + " Method for normalization"
+    print ""
+    print "Original image mean and standard deviation:  %s    and    %s  " % (np.mean(img),np.std(img))
+
+    i2 = NormalizeColumnGains(img,Plot=1,JustDark=1,Method=Method)
+    pylab.title('Just Dark Row Normalization Using ' + Method )
+    print "Just using Dark rows, image size is: "
+    print i2.shape
+    print "Dark Row based image mean and standard deviation:  %s    and    %s  " % (np.mean(i2),np.std(i2))
 
 
+    i3 = NormalizeColumnGains(img,Plot=1,Method=Method)
+    pylab.title('Using Dark row and Whole Image Using ' + Method )
 
+    print "Now using the entire image, image size is: "
+    print i3.shape
+    print "DR + Image Column mean and standard deviation:  %s    and    %s  " % (np.mean(i3),np.std(i3))
 
-# Jeds section
-#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
-#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
+    print "Adding a Wiener Filter"
+    iwiener=NormalizeColumnGains(img,Plot=1,Method=Method,Wiener=1)
+    print "DR + Image Column  + Wiener mean and standard deviation:  %s    and    %s  " % (np.mean(iwiener),np.std(iwiener))
+
+    # Plotting
+    pylab.figure()
+    pylab.subplot(2,2,1)
+    pylab.imshow(np.multiply(img,4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
+    pylab.title('Original Image')
+
+    pylab.subplot(2,2,2)
+    pylab.imshow(np.multiply(i2,4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
+    pylab.title("Dark Row normalization Using " + Method )
+
+    pylab.subplot(2,2,3)
+    pylab.imshow(np.multiply(i3,4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
+    pylab.title('DR and Img Col Using ' + Method)
+
+    pylab.subplot(2,2,4)
+    pylab.imshow(np.multiply(iwiener,4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
+    pylab.title('Adding Wiener Filter to ' + Method)
+
+    imgutil.dispimg(i3,viewfactor=4.)
+    pylab.title('DR + IMGnorm')
+    imgutil.dispimg(iwiener,viewfactor=4.)
+    pylab.title('DR + IMGnorm + Wiener')
+
+    return 0
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+

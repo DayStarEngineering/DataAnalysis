@@ -12,12 +12,14 @@ import numpy as np
 import transformations as transform
 import scipy as sp
 from scipy import signal
+from scipy.signal import filter_design as fd
 import matplotlib
 import pylab as pylab
 import math
 import sys
+import time
 
-def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False):
+def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type='ellip'):
     """
         Purpose: Find the variance of a set of quaternions. Low Frequency components are assumed to be invalid
                  and will be discarded. Intended for analyzing high-frequency variations in a set of rotation
@@ -28,6 +30,9 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False):
                 plot - (optional) Set to generate plots of the fourrier filterig as we do it, to see how the signal
                        changes
                 variable -(optional), the name of the signal being filtered. Used for plot labeling.
+                {filt_type}  -(optional) Specify filter type. Either:
+                    * 'ellip' - try a scipy elliptical filter
+                    * 'brick' - try a simple brick wall filter
         Outputs: var - The computed variance of all observations. Meant to be some indication of DayStar performance
     """
     # Hey, do this later smarter
@@ -39,9 +44,9 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False):
         quats.append(np.array(np.hstack([qtmp[3],qtmp[0:3]])))
 
     [r,p,y]=quat2rpy(quats)
-    r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll')     #radians
-    p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch')     #radians
-    y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw')     #radians
+    r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll',filt_type=filt_type)     #radians
+    p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch',filt_type=filt_type)     #radians
+    y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw',filt_type=filt_type)     #radians
 
 #    obs_std = np.sqrt(np.std(r_filt)**2 + np.std(p_filt)**2 + np.std(y_filt)**2)    #Standard deviation
     r_std = 3600*(np.std(r_filt)*180/math.pi)
@@ -55,7 +60,7 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False):
     return r_var,p_var,y_var
 
 
-def high_pass(series,cutoff=100,delta=1,plot=False,lfilt=None,variable='signal'):
+def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='signal'):
     """
         Purpose: High-pass filter a single array series using fourrier transforms.
 
@@ -63,57 +68,94 @@ def high_pass(series,cutoff=100,delta=1,plot=False,lfilt=None,variable='signal')
                 {cutoff} -(optional) Specify cutoff frequency [HZ]
                 {delta}  -(optional) time between observations [s]
                 {plot}   -(optional) Plot the results of this op in an awesome way
-                {lfilt}  -(optional) Try a Scipy.signal.lfilt filter. Just experimental for now
+                {filt_type}  -(optional) Specify filter type. Either:
+                        * 'ellip' - try a scipy elliptical filter
+                        * 'brick' - try a simple brick wall filter
 
         Outputs:{new_series} -the new series, with low frequency changes filtered out
     """
     #    power = power_spectrum(series,sampling_frequency=sampling_frequency)
-    ns =len(series)     # number of samples
 
-    cutoff_freq=cutoff*(ns*delta)   # Index of cutoff frequency in this new awesome frequency domain
-    #    cutoff_freq=100
+    ## Convert to Frequency Domain
+    #---------------------------------------------------------
+    series  = np.array(series)          # Convert to Array
+    ns      =len(series)                # number of samples
+    cutoff_freq=cutoff*(ns*delta)       # Index of cutoff frequency in this new awesome frequency domain
+    #---------------------------------------------------------
 
-    fft_series = np.fft.rfft(series)
-    fft_filt = fft_series.copy()
+    ## Construct Frequency Filter
+    #---------------------------------------------------------
+    Wp = (ns*delta)/cutoff_freq     # Cutoff frequency, normalized to 1
+    Ws = Wp-0.1*Wp                  # Stop frequency
+    Rp = 0.1                        # passband maximum loss (gpass)
+    As = 60                         # stoppand min attenuation (gstop)
 
-
-    if lfilt is None:
-
+    if filt_type.lower() == 'ellip':
+        try:
+            # Must 'try' this because wrong cutoff can spawn an error really easily
+            b,a = fd.iirdesign(Wp, Ws, Rp, As, ftype='ellip')
+            new_series = signal.lfilter(b,a,series)
+        except:
+            print "Something went wrong with the Fourier Filter, possibly the cutoff frequency wrong"
+            print "Cutoff freq is : %s" % cutoff_freq
+            print "Just doing a dumb brick wall filter"
+            fft_series = np.fft.rfft(series)
+            fft_filt   = np.array(fft_series.copy())
+            for ii in range(0, len(fft_filt)):
+                if ii == cutoff_freq:
+                    fft_filt[ii] = 0.5
+                if ii <cutoff_freq:
+                    fft_filt[ii] = 0.0
+            # Inverse fourrier. Get new filtered signal back
+            new_series = np.array(np.fft.irfft(fft_filt))   #                fft_filt[len(fft_filt) - ii -1] = 0.0
+    elif filt_type.lower() == 'brick':
+        fft_series = np.fft.rfft(series)
+        fft_filt   = np.array(fft_series.copy())
         for ii in range(0, len(fft_filt)):
+            if ii == cutoff_freq:
+                fft_filt[ii] = 0.5
             if ii <cutoff_freq:
                 fft_filt[ii] = 0.0
-            #                fft_filt[len(fft_filt) - ii -1] = 0.0
-    else:  # Doesn't really work
-        fft_filt=signal.lfilter([0,0,0,.5,1,1,1,1,1,1,1,1,1,],[1],fft_series)
+            # Inverse fourrier. Get new filtered signal back
+        new_series = np.array(np.fft.irfft(fft_filt))
+    else:
+        fft_series = np.fft.rfft(series)
+        fft_filt   = np.array(fft_series.copy())
+        for ii in range(0, len(fft_filt)):
+            if ii == cutoff_freq:
+                fft_filt[ii] = 0.5
+            if ii <cutoff_freq:
+                fft_filt[ii] = 0.0
+            # Inverse fourrier. Get new filtered signal back
+        new_series = np.array(np.fft.irfft(fft_filt))
 
-    # Inverse fourrier. Get new filtered signal back
-    new_series = np.fft.irfft(fft_filt)
+
 
     if plot:
         pylab.figure(num=None, figsize=(13, 7), dpi=80, facecolor='w', edgecolor='k')
         # Signal
         pylab.subplot(2,2,1)
 #        pylab.plot(np.arange(0,ns*delta,delta),series)
-        pylab.plot(series)
+        pylab.plot(series*180/math.pi*3600)
         pylab.xlabel('Time')
-        pylab.ylabel(variable)
+        pylab.ylabel(variable + " [arcseconds]")
 
         pylab.subplot(2,2,3)
-        pylab.plot(new_series)
+        pylab.plot(new_series*180/math.pi*3600)
 #        pylab.plot(np.arange(0,ns*delta,delta),new_series)
         pylab.xlabel('Time')
-        pylab.ylabel('Filtered ' + variable)
+        pylab.ylabel('Filtered ' + variable + " [arcseconds]")
 
         #fourrier signal
         pylab.subplot(2,2,2)
-        pylab.plot(fft_series)
+        pylab.plot(np.fft.rfft(series))
         pylab.xlabel('Freq (Hz)')
-        pylab.ylabel('Original Power')
+        pylab.ylabel('Original Fourier Spectrum')
 
         pylab.subplot(2,2,4)
-        pylab.plot(fft_filt)
+        pylab.plot(np.fft.rfft(new_series))
         pylab.xlabel('Freq (Hz)')
-        pylab.ylabel('Filtered Power')
+        pylab.ylabel('Filtered Fourier Spectrum')
 
     return new_series
 
@@ -142,15 +184,26 @@ def optimize_variance(quats,delta_t=0.01):
 
 
 # Simple routine to test the effectiveness of the highpass filter
-def test_highpass():
+def test_highpass(filt_type='ellip'):
     """ Simple routine to test the highpass filtering scheme.
         Just call, and it will perform all testing.
     """
+    tic = time.clock()
     signal=noisy_sin()
-    signal2=high_pass(signal,cutoff=2,delta=.05,plot=1,variable='roll [rad]')
-    pylab.title('Brick Wall Filtering')
-    nil=high_pass(signal,delta=.05,plot=1,lfilt=1)
-    pylab.title('SciPy "lfilt" filtering. Just guesswork')
+    signal2=high_pass(signal,cutoff=2,delta=.05,plot=1,filt_type=filt_type)
+    pylab.title(filt_type + ' Filter Cutoff is 2/.05 Hz')
+    nil=high_pass(signal,cutoff=0.1,delta=.05,plot=1,filt_type=filt_type)
+    pylab.title(filt_type + ' Filter Cutoff is 0.7/.05 Hz')
+
+    quats = sample_quats()
+    d=FindVariance(quats,plot=True,filt_type=filt_type)
+#    [r,p,y]=quat2rpy(quats)
+#    r_filt = high_pass(r,cutoff=1,delta=0.1,plot=1,variable='roll')     #radians
+#    p_filt = high_pass(p,cutoff=1,delta=0.1,plot=1,variable='pitch')     #radians
+#    y_filt = high_pass(y,cutoff=1,delta=0.1,plot=1,variable='yaw')     #radians
+    toc = time.clock()
+
+    print "Filtering with " + filt_type + " filtering took %s seconds" % (toc-tic)
     return signal, signal2
 
 

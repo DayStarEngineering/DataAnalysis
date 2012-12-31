@@ -246,6 +246,7 @@ class DatabaseConnect:
         #            >>> db.find('FirstName','LastName="bar")
         #            or
         #            >>> db.find('FirstName',['LastName="bar",'age>37','gender="M")
+        #            >>> burst=db.find('burst_num',['burst_num IN (165,166,167,168,169,170)','exposure > 20'])
         #
         #<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>---<*>
         """
