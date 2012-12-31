@@ -268,10 +268,10 @@ def quat2ypr(quaternions):
     pitch=[]
     yaw=[]
     for q in quaternions:
-        RPY=transform.euler_from_quaternion(q, axes='sxyz')   # They expect the 'sxyz'
-        roll.append(RPY[2])
-        pitch.append(RPY[1])
-        yaw.append(RPY[0])
+        YPR=transform.euler_from_quaternion(q, axes='szyx')   # default is 'sxyz'
+        roll.append(YPR[2])
+        pitch.append(YPR[1])
+        yaw.append(YPR[0])
     return yaw,pitch,roll
 
 
