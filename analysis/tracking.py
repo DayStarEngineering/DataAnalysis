@@ -11,7 +11,7 @@ __author__ = 'zachdischner'
 import numpy as np
 import transformations as transform
 import scipy as sp
-from scipy import signal
+from scipy import signal,polyfit,polyval
 from scipy.signal import filter_design as fd
 import matplotlib
 import pylab as pylab
@@ -43,7 +43,7 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type
         qtmp=transform.quaternion_multiply(qtmp,q)      # Multiply each quaternion by the sum of all previous quaternions
         quats.append(np.array(np.hstack([qtmp[3],qtmp[0:3]])))
 
-    [r,p,y]=quat2rpy(quats)
+    [y,p,r]=quat2ypr(quats)
     r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll',filt_type=filt_type)     #radians
     p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch',filt_type=filt_type)     #radians
     y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw',filt_type=filt_type)     #radians
@@ -129,6 +129,20 @@ def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='s
             # Inverse fourrier. Get new filtered signal back
         new_series = np.array(np.fft.irfft(fft_filt))
 
+    # Try a linear regression. See which is better
+    (ar,br)=polyfit(np.arange(0,len(series)),series,1)
+    lin_series=polyval([ar,br],np.arange(0,len(series))) - series
+    res_filt = np.std(new_series)
+    res_lin = np.std(lin_series)
+
+    if res_filt > res_lin:
+        if variable != 'signal':
+            print variable
+        print "Frequency filter is way worse than a simple linear one"
+        print "Freq filter gives resulting std of : %s " % res_filt
+        print "Linear regression gives resulting std of : %s " % res_lin
+        new_series = lin_series
+
 
 
     if plot:
@@ -196,7 +210,10 @@ def test_highpass(filt_type='ellip'):
     pylab.title(filt_type + ' Filter Cutoff is 0.7/.05 Hz')
 
     quats = sample_quats()
-    d=FindVariance(quats,plot=True,filt_type=filt_type)
+    r,p,y=FindVariance(quats,plot=True,filt_type=filt_type)
+    print "Roll rms = %s " % r
+    print "Pitch rms = %s " % p
+    print "Yaw rms = %s " % y
 #    [r,p,y]=quat2rpy(quats)
 #    r_filt = high_pass(r,cutoff=1,delta=0.1,plot=1,variable='roll')     #radians
 #    p_filt = high_pass(p,cutoff=1,delta=0.1,plot=1,variable='pitch')     #radians
@@ -238,7 +255,7 @@ def noisy_sin():
 
 
 # Convert a list of arrays of quaternions to arrays of corresponding roll, pitch, and yaw values.
-def quat2rpy(quaternions):
+def quat2ypr(quaternions):
     """
         Purpose: Convert a list of arrays of quaternions to Euler angles (roll,pitch,yaw)
         Inputs: quaternions - list of quaternion arrays. In the form of 'SXYZ' I THINK?!?!?
@@ -252,10 +269,10 @@ def quat2rpy(quaternions):
     yaw=[]
     for q in quaternions:
         RPY=transform.euler_from_quaternion(q, axes='sxyz')   # They expect the 'sxyz'
-        roll.append(RPY[0])
+        roll.append(RPY[2])
         pitch.append(RPY[1])
-        yaw.append(RPY[2])
-    return roll,pitch,yaw
+        yaw.append(RPY[0])
+    return yaw,pitch,roll
 
 
 
