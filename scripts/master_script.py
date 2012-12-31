@@ -55,7 +55,8 @@ def getCentroids(fnames):
         image = flatfield.NormalizeColumnGains(image,Plot=0)
         
         # Find stars in image:
-        centers = centroid.findstars(image)
+        #centers = centroid.findstars(image)
+        centers = centroid.findstars(image,zreject=3, zthresh=3.05, zpeakthresh=5, min_pix_per_star=6, max_pix_per_star=60, oblongness=2,debug=True)
         
         # Get centroids:
         centroids.append(centroid.imgcentroid(image,centers))

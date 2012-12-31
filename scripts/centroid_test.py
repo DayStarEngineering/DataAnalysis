@@ -29,14 +29,14 @@ print 'Opening: ' + fname
 image = imgutil.loadimg(fname,from_database=True)
 
 # Clean-up the image:
-image = flatfield.NormalizeColumnGains(image,Plot=0,Wiener=1)
+image = flatfield.NormalizeColumnGains(image,Plot=0,Wiener=0)
 
 # Find star centroids:
-(centers) = centroid.findstars(image,zreject=3, zthresh=3.15, min_pix_per_star=6, max_pix_per_star=60, oblongness=1.5,debug=True)
+(centers) = centroid.findstars(image,zreject=3, zthresh=3.05, zpeakthresh=5, min_pix_per_star=6, max_pix_per_star=60, oblongness=2,debug=True)
 centroids = centroid.imgcentroid(image,centers)
 
 # Display image with stars circled:
 if centroids:
-    imgutil.circstars(image,centroids,20,viewfactor=1)
+    imgutil.circstars(image,centroids,20,viewfactor=3)
 else:
     print 'Oopsies... we found ZERO centroids. Now how do you feel?'

@@ -186,6 +186,7 @@ def circstars(imgArray,centlist,radius=None,color=None,viewfactor=1,fignum = 1):
         pl.gca().add_patch(circ)
     
     # actually display it
+    pl.colorbar()  
     pl.show()
 
 # ----------------------------- Save Image --------------------------------------
