@@ -21,6 +21,7 @@ from analysis import qmethod as qmethod
 from analysis import plots as plots
 from analysis import submethods as sm
 from analysis import tracking
+from analysis import flatfield
 from util import imgutil as imgutil
 from db import RawData as database
 from itertools import izip, islice
@@ -51,10 +52,11 @@ def getCentroids(fnames):
         image = imgutil.loadimg(fname,from_database=True)
         
         # Clean up image:
-        # Zach's stuff here...
+        image = flatfield.NormalizeColumnGains(image,Plot=0)
         
         # Find stars in image:
-        centers = centroid.findstars(image)
+        #centers = centroid.findstars(image)
+        centers = centroid.findstars(image,zreject=3, zthresh=3.05, zpeakthresh=5, min_pix_per_star=6, max_pix_per_star=60, oblongness=2,debug=True)
         
         # Get centroids:
         centroids.append(centroid.imgcentroid(image,centers))
@@ -99,7 +101,7 @@ def getQuaternions(centroids):
         # Run the Q-Method:
         quats.append(qmethod.qmethod(Vi,Vb))
      
-    return quats
+    return quats,matched_centroids,nummatchstars
 
 ###################################################################################
 # Set-up
@@ -114,12 +116,12 @@ pl.close('all')
 # Nighttime Burst: 172 = 30ms (avg=15), 175 = 50ms (avg=32), 181 works too
 
 # Which plots do you want brah?
-plot = False
+plot = True
 
 # Get desired filenames from database:
 print 'Loading filenames from database.'
 db = database.Connect()
-fnames = db.select('select raw_fn from rawdata where burst_num = 172 limit 3').raw_fn.tolist()
+fnames = db.select('select raw_fn from rawdata where burst_num = 172 limit 50').raw_fn.tolist()
 #fnames = db.find('raw_fn','burst_num = 175 limit 5').raw_fn.tolist()
 
         
@@ -138,7 +140,7 @@ pickle.dump( centroids, open( pname, "wb" ) )
 centroids = pickle.load( open( pname, "rb" ) )
 
 # Get quaternions from our centroids:
-quats = getQuaternions(centroids)
+quats,matched_centroids,nummatchstars = getQuaternions(centroids)
 
 
 print 'Find roll, pitch, and yaw variances.'

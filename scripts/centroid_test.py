@@ -16,23 +16,27 @@ from analysis import centroid as centroid
 from util import imgutil as imgutil
 from util import submethods as subm
 from db import RawData as database
+from analysis import flatfield
 
 ###################################################################################
 # Main
 ###################################################################################
 # Load the image:
 db = database.Connect()
-fnames = db.find('raw_fn','burst_num = 145 and gain = 1').raw_fn.tolist()
-fname = fnames[1]
+fnames = db.select('select raw_fn from rawdata where burst_num = 172 limit 2').raw_fn.tolist()
+fname = fnames[0]
 print 'Opening: ' + fname
 image = imgutil.loadimg(fname,from_database=True)
 
+# Clean-up the image:
+image = flatfield.NormalizeColumnGains(image,Plot=0,Wiener=0)
+
 # Find star centroids:
-(centers) = centroid.findstars(image,debug=True)
+(centers) = centroid.findstars(image,zreject=3, zthresh=3.05, zpeakthresh=5, min_pix_per_star=6, max_pix_per_star=60, oblongness=2,debug=True)
 centroids = centroid.imgcentroid(image,centers)
 
 # Display image with stars circled:
 if centroids:
-    imgutil.circstars(image,centroids,1,viewfactor=1)
+    imgutil.circstars(image,centroids,20,viewfactor=3)
 else:
     print 'Oopsies... we found ZERO centroids. Now how do you feel?'
