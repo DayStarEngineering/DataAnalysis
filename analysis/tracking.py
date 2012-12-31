@@ -268,15 +268,20 @@ def quat2ypr(quaternions):
     pitch=[]
     yaw=[]
     for q in quaternions:
-        YPR=transform.euler_from_quaternion(q, axes='szyx')   # default is 'sxyz'
-        roll.append(YPR[2])
-        pitch.append(YPR[1])
+        YPR=transform.euler_from_quaternion(q, axes='rzyx')   # default is 'sxyz'
         yaw.append(YPR[0])
+        pitch.append(YPR[1])
+        roll.append(YPR[2])
     return yaw,pitch,roll
 
-
-
-
+def quat2euler321(q):
+    dcm = quat2dcm(q)
+    return np.array([math.atan2(dcm[0,1],dcm[0,0]), -math.asin(dcm[0,2]), math.atan2(dcm[1,2],dcm[2,2])])
+    
+def quat2dcm(q):
+    return np.array([[q[0]**2+q[1]**2-q[2]**2-q[3]**2, 2*(q[1]*q[2]+q[0]*q[3]), 2*(q[1]*q[3]-q[0]*q[2])],
+                    [2*(q[1]*q[2]-q[0]*q[3]), q[0]**2-q[1]**2+q[2]**2-q[3]**2, 2*(q[2]*q[3]+q[0]*q[1])],
+                    [2*(q[1]*q[3]+q[0]*q[2]), 2*(q[2]*q[3]-q[0]*q[1]), q[0]**2-q[1]**2-q[2]**2+q[3]**2]]);
 
 def power_spectrum(series,sampling_frequency=1):
     """
