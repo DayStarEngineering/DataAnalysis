@@ -19,7 +19,7 @@ import math
 import sys
 import time
 
-def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type='ellip'):
+def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type='ellip',method='kevin'):
     """
         Purpose: Find the variance of a set of quaternions. Low Frequency components are assumed to be invalid
                  and will be discarded. Intended for analyzing high-frequency variations in a set of rotation
@@ -43,7 +43,7 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type
         qtmp=transform.quaternion_multiply(qtmp,q)      # Multiply each quaternion by the sum of all previous quaternions
         quats.append(np.array(np.hstack([qtmp[3],qtmp[0:3]])))
 
-    [y,p,r]=quat2ypr(quats)
+    [y,p,r]=quat2ypr(quats,method=method)
     r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll',filt_type=filt_type)     #radians
     p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch',filt_type=filt_type)     #radians
     y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw',filt_type=filt_type)     #radians
@@ -198,7 +198,7 @@ def optimize_variance(quats,delta_t=0.01):
 
 
 # Simple routine to test the effectiveness of the highpass filter
-def test_highpass(filt_type='ellip'):
+def test_highpass(filt_type='ellip',method='kevin'):
     """ Simple routine to test the highpass filtering scheme.
         Just call, and it will perform all testing.
     """
@@ -210,10 +210,11 @@ def test_highpass(filt_type='ellip'):
     pylab.title(filt_type + ' Filter Cutoff is 0.7/.05 Hz')
 
     quats = sample_quats()
-    r,p,y=FindVariance(quats,plot=True,filt_type=filt_type)
-    print "Roll rms = %s " % r
-    print "Pitch rms = %s " % p
+    r,p,y=FindVariance(quats,plot=True,filt_type=filt_type,method=method)
     print "Yaw rms = %s " % y
+    print "Pitch rms = %s " % p
+    print "Roll rms = %s " % r
+
 #    [r,p,y]=quat2rpy(quats)
 #    r_filt = high_pass(r,cutoff=1,delta=0.1,plot=1,variable='roll')     #radians
 #    p_filt = high_pass(p,cutoff=1,delta=0.1,plot=1,variable='pitch')     #radians
@@ -255,7 +256,7 @@ def noisy_sin():
 
 
 # Convert a list of arrays of quaternions to arrays of corresponding roll, pitch, and yaw values.
-def quat2ypr(quaternions,method='transform'):
+def quat2ypr(quaternions,method='kevin'):
     """
         Purpose: Convert a list of arrays of quaternions to Euler angles (roll,pitch,yaw)
         Inputs: quaternions - list of quaternion arrays. In the form of 'SXYZ' I THINK?!?!?
@@ -272,9 +273,6 @@ def quat2ypr(quaternions,method='transform'):
             YPR=transform.euler_from_quaternion(q, axes='rzyx')   # default is 'sxyz'
         else:
             YPR= quat2euler321(q)
-        roll.append(YPR[2])
-        pitch.append(YPR[1])
-        YPR=transform.euler_from_quaternion(q, axes='rzyx')   # default is 'sxyz'
         yaw.append(YPR[0])
         pitch.append(YPR[1])
         roll.append(YPR[2])
