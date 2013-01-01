@@ -34,6 +34,10 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type
                     * 'ellip' - try a scipy elliptical filter
                     * 'brick' - try a simple brick wall filter
         Outputs: var - The computed variance of all observations. Meant to be some indication of DayStar performance
+
+        **NOTE**
+            MOTION_FREQUENCY KEYWORD MUST BE GREATER THAN 1 FOR ELLIPTICAL FILTER. It is an inverse ratio of the full spectrum
+            that we wish to cut off. So a '4' will cutoff (1/4) of the frequency spectrum.
     """
     # Hey, do this later smarter
     quats=[]
@@ -57,7 +61,7 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type
     y_var = y_std**2
 #    var = 3600*(obs_std*180/math.pi)**2         # arcseconds
 
-    return r_var,p_var,y_var
+    return y_var,p_var,r_var
 
 
 def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='signal'):
@@ -65,7 +69,9 @@ def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='s
         Purpose: High-pass filter a single array series using fourrier transforms.
 
         Inputs: {series} -an array of observations to filter (i.e) lots of angle measurements
-                {cutoff} -(optional) Specify cutoff frequency [HZ]
+                {cutoff} -(optional)
+                    *if 'brick' Specify cutoff frequency [HZ]
+                    *if 'ellip' Specify fraction of frequency spectrum to lose. (cutoff > 1.1)
                 {delta}  -(optional) time between observations [s]
                 {plot}   -(optional) Plot the results of this op in an awesome way
                 {filt_type}  -(optional) Specify filter type. Either:
@@ -73,6 +79,10 @@ def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='s
                         * 'brick' - try a simple brick wall filter
 
         Outputs:{new_series} -the new series, with low frequency changes filtered out
+
+        **NOTE**
+            "CUTOFF" KEYWORD MUST BE GREATER THAN 1 FOR ELLIPTICAL FILTER. It is an inverse ratio of the full spectrum
+            that we wish to cut off. So a '4' will cutoff (1/4) of the frequency spectrum.
     """
     #    power = power_spectrum(series,sampling_frequency=sampling_frequency)
 
@@ -99,6 +109,7 @@ def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='s
             print "Something went wrong with the Fourier Filter, possibly the cutoff frequency wrong"
             print "Cutoff freq is : %s" % cutoff_freq
             print "Just doing a dumb brick wall filter"
+#            cutoff_freq=(ns/cutoff*delta)
             fft_series = np.fft.rfft(series)
             fft_filt   = np.array(fft_series.copy())
             for ii in range(0, len(fft_filt)):
@@ -187,18 +198,35 @@ def optimize_variance(quats,delta_t=0.01):
     cutoff_freq=ns/2
     cutoff2=cutoff_freq/(ns*delta_t)
 
-    motion_freq=np.arange(0,cutoff2,1)
-    var=[]
-    for ii in np.arange(0,4,.1):
-        var.append(FindVariance(quats,motion_frequency=ii,delta_t=0.01))
+    motion_freq=np.arange(1.2,4,0.01)
+    yv=np.zeros(len(motion_freq))
+    pv=np.zeros(len(motion_freq))
+    rv=np.zeros(len(motion_freq))
+    for ii in np.arange(0,len(motion_freq),1):
+        yv[ii],pv[ii],rv[ii]=FindVariance(quats,motion_frequency=motion_freq[ii],delta_t=0.01)
 
     pylab.figure()
-    pylab.plot(var)
-    return var
+    pylab.plot(motion_freq,yv)
+    pylab.title('Yaw')
+    pylab.ylabel('Yaw Variance')
+    pylab.xlabel('Motion Frequency')
+
+    pylab.figure()
+    pylab.plot(motion_freq,pv)
+    pylab.title('Pitch')
+    pylab.ylabel('Pitch Variance')
+    pylab.xlabel('Motion Frequency')
+
+    pylab.figure()
+    pylab.plot(motion_freq,rv)
+    pylab.title('Roll')
+    pylab.ylabel('Roll Variance')
+    pylab.xlabel('Motion Frequency')
+    return yv,pv,rv,motion_freq
 
 
 # Simple routine to test the effectiveness of the highpass filter
-def test_highpass(filt_type='ellip',method='kevin'):
+def test_highpass(filt_type='ellip',method='kevin',motion_freq=2):
     """ Simple routine to test the highpass filtering scheme.
         Just call, and it will perform all testing.
     """
@@ -210,7 +238,7 @@ def test_highpass(filt_type='ellip',method='kevin'):
     pylab.title(filt_type + ' Filter Cutoff is 0.7/.05 Hz')
 
     quats = sample_quats()
-    r,p,y=FindVariance(quats,plot=True,filt_type=filt_type,method=method)
+    y,p,r=FindVariance(quats,plot=True,filt_type=filt_type,method=method,motion_frequency=motion_freq)
     print "Yaw rms = %s " % y
     print "Pitch rms = %s " % p
     print "Roll rms = %s " % r
