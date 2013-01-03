@@ -31,6 +31,7 @@ import copy as cp
 from util import imgutil
 from collections import Counter
 from analysis import centroid as centroid
+from analysis import chzphot as chzphot
 
 from scipy import signal as signal
 from scipy.stats import mode as mode
@@ -293,8 +294,11 @@ def select_method(Method):
     elif Method.lower() == "mode":
         func = lambda A: mode(A, axis=0)[0]
         
-    elif Method.lower() == "robustmean":  
+    elif Method.lower() == "frobustmean":  
         func = lambda A: centroid.frobomad(A, axis=0)[0]
+    
+    elif Method.lower() == "robustmean":
+        func = lambda A: chzphot.robomad(A)[0]
         
     elif Method.lower() == "gangbang":
         func = lambda A: np.average(np.vstack(( np.median(A, axis=0), 

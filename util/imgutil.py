@@ -154,7 +154,7 @@ def dispimg(imgArray, viewfactor=1, fignum=None):
     pl.show()
 
 # -----------------------------Display Image with Cenroids Cirled ------------------------------
-def circstars(imgArray,centlist,radius=None,color=None,viewfactor=1,fignum = 1):
+def circstars(imgArray,centlist,radius=None,color=None,viewfactor=1,fignum=None):
     '''circstars(): Displays an image imgArray with circles (with specified radius) overlayed 
     at the positions given in centlist. The standard color is red, 'r'.'''
         
@@ -174,7 +174,12 @@ def circstars(imgArray,centlist,radius=None,color=None,viewfactor=1,fignum = 1):
         radius = 10 # default radius
             
     # plot the image 
-    pl.figure(fignum)
+    if fignum:
+        pl.figure(fignum)
+    else:
+        f = pl.figure()
+        fignum = f.number
+        
     pl.gray()
     pl.imshow(np.multiply(imgArray,viewfactor), cmap=None, norm=None, aspect=None,
                 interpolation='nearest', vmin=0, vmax=2048, origin='upper')

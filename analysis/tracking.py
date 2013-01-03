@@ -48,17 +48,19 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type
         quats.append(np.array(np.hstack([qtmp[3],qtmp[0:3]])))
 
     [y,p,r]=quat2ypr(quats,method=method)
-    r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll',filt_type=filt_type)     #radians
-    p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch',filt_type=filt_type)     #radians
+
     y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw',filt_type=filt_type)     #radians
+    p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch',filt_type=filt_type)     #radians
+    r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll',filt_type=filt_type)     #radians
 
 #    obs_std = np.sqrt(np.std(r_filt)**2 + np.std(p_filt)**2 + np.std(y_filt)**2)    #Standard deviation
-    r_std = 3600*(np.std(r_filt)*180/math.pi)
-    p_std = 3600*(np.std(p_filt)*180/math.pi)
     y_std = 3600*(np.std(y_filt)*180/math.pi)
-    r_var = r_std**2
-    p_var = p_std**2
+    p_std = 3600*(np.std(p_filt)*180/math.pi)
+    r_std = 3600*(np.std(r_filt)*180/math.pi)
+    
     y_var = y_std**2
+    p_var = p_std**2
+    r_var = r_std**2
 #    var = 3600*(obs_std*180/math.pi)**2         # arcseconds
 
     return y_var,p_var,r_var

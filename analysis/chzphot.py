@@ -235,7 +235,7 @@ def MAD(im):
 
 #-----------------------------------------------------
 
-def robomad(im, thresh):
+def robomad(im, thresh=3):
     '''Assumes that the array im has normally distributed background pixels
     and some sources, like stars bad pixels and cosmic rays. Thresh = no. of sigma
     for rejection (e.g., 5).'''

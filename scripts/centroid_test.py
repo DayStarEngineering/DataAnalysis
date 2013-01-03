@@ -17,6 +17,7 @@ from util import imgutil as imgutil
 from util import submethods as subm
 from db import RawData as database
 from analysis import flatfield
+import time
 
 ###################################################################################
 # Main
@@ -28,15 +29,24 @@ fname = fnames[0]
 print 'Opening: ' + fname
 image = imgutil.loadimg(fname,from_database=True)
 
+tic = time.clock()
 # Clean-up the image:
-image = flatfield.NormalizeColumnGains(image,Plot=0,Wiener=0)
+#image = flatfield.NormalizeColumnGains(image,Plot=0,Wiener=0)
+image = flatfield.ImgNormalize(image, Method="mean")
+toc = time.clock()
 
 # Find star centroids:
-(centers) = centroid.findstars(image,zreject=3, zthresh=3.05, zpeakthresh=5, min_pix_per_star=5, max_pix_per_star=60, oblongness=2,debug=True)
+centroids = []
+(centers) = centroid.findstars(image,zreject=4, zthresh=3.2, zpeakthresh=5, min_pix_per_star=5, max_pix_per_star=60, oblongness=2,debug=True)
 centroids = centroid.imgcentroid(image,centers)
 
+        
 # Display image with stars circled:
+vf = 3
 if centroids:
-    imgutil.circstars(image,centroids,20,viewfactor=3)
+    imgutil.circstars(image,centroids,20,viewfactor=vf)
 else:
     print 'Oopsies... we found ZERO centroids. Now how do you feel?'
+    imgutil.dispimg(image,viewfactor=vf)
+
+print 'Total time: ',toc - tic,' s'
