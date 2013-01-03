@@ -26,10 +26,14 @@ __author__ = 'zachdischner'
 import numpy as np
 import pylab as pylab
 import math
+import copy as cp
+
 from util import imgutil
 from collections import Counter
 from analysis import centroid as centroid
+
 from scipy import signal as signal
+from scipy.stats import mode as mode
 import time
 # Get the mode   from collections import Counter
 #                Counter(col).most_common(1)[0][0]
@@ -206,6 +210,113 @@ def FindNormFactor(target,imgArray,Method="Mean",Scalar=False):
             norm_factor.append(target/centroid.frobomad(imgArray[:,col])[0])
     return norm_factor
 
+
+#-----------------------------------------------------------------------------
+# ------------------------- Image Normalization ------------------------------
+# ----------------------------------------------------------------------------
+
+def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
+    """
+        Purpose: Normalize an image based on column averages. "bg" is the image
+        background value, and is computed by frobomad if left unspecified. The 
+        default method is "mean." Image values are used by default, unless "source"
+        is set to "dark."
+        
+        Timing: For one image, just finding the column values takes:
+          mean     = 0.05 sec
+          median   = 0.25 sec
+          frobomad = 1.6 sec
+          mode     = 15 sec
+          gangbang = 15 sec 
+    """
+    
+    # Deepcopy
+    img = np.int16( cp.deepcopy(imgArray) )
+
+    # Get size of the image
+    [ysize, xsize] = img.shape
+    middle = int(ysize/2)
+    
+    # Get column value method
+    func = select_method(Method)
+    
+    # Separate dark rows and image
+    dark = None
+    if (ysize, xsize) == (2192,2592):
+        # Delete dark columns on the left/right sides of the image (16 cols)
+        img = img[:, 16:xsize-16]
+    
+        # Separate the dark rows from the image and update middle
+        dark = img[middle-16:middle+16]
+        img = img[np.r_[0:middle-16, middle+16:ysize] ]
+        middle -= 16;
+    
+    # Use dark rows for column data
+    if source == "dark":
+        if dark is None:
+            raise RuntimeError('Image must be uncropped to use source="dark"')
+        else: 
+            topCol = func(dark[:16])
+            botCol = func(dark[16:])
+            
+    elif source == "image":
+        topCol = func(img[:middle])
+        botCol = func(img[middle:])     
+          
+    else:
+        raise RuntimeError('Source must be image or dark')
+    
+    # Find top and bottom bg
+    if bg is None:
+        bg = (centroid.frobomad(img[:middle])[0], centroid.frobomad(img[middle:])[0] )
+        print bg
+    
+    print img.shape
+    
+    # Apply column averages to image 
+    img[:middle] *= bg[0]/np.tile(topCol, (middle,1))
+    img[middle:] *= bg[1]/np.tile(botCol, (middle,1))
+    
+    # return subtracted image
+    return img  
+   
+#-----------------------------------------------------------------------------
+# ------------------------- Column Value Methods -----------------------------
+# ----------------------------------------------------------------------------
+def select_method(Method):
+    '''
+    Selects a method that returns the column averages for an array A.
+    '''
+
+    if Method.lower() == "mean":
+        func = lambda A: np.average(A, axis=0)
+        
+    elif Method.lower() == "median":
+        func = lambda A: np.median(A, axis=0)
+        
+    elif Method.lower() == "mode":
+        func = lambda A: mode(A, axis=0)[0]
+        
+    elif Method.lower() == "robustmean":  
+        func = lambda A: centroid.frobomad(A, axis=0)[0]
+        
+    elif Method.lower() == "gangbang":
+        func = lambda A: np.average(np.vstack(( np.median(A, axis=0), 
+                                       centroid.frobomad(A, axis=0)[0],
+                                       mode(A, axis=0)[0],
+                                       np.average(A, axis=0) )),
+                                    axis=0)  
+       
+    else: # Use Kevin's Frobomad
+        print "ERROR!!! Invalid normalization method input. Please try using"
+        print "mean, median, mode, robustmean, or gangbang."
+        print "Just using the Robust Mean By Default"
+        print ""
+        
+        func = lambda A: centroid.frobomad(A, axis=0)[0]
+
+    return func
+
 #-----------------------------------------------------------------------------
 # --------------------------- Plot Comparison --------------------------------
 # ----------------------------------------------------------------------------
@@ -266,7 +377,7 @@ def PlotComparison(old_img,new_img,title="Title"):
 # -------------------------- Helper Functions --------------------------------
 # ----------------------------------------------------------------------------
 
-def mode(col):
+def mymode(col):
     return Counter(col).most_common(1)[0]
 
 def smooth(data,winsize=10):

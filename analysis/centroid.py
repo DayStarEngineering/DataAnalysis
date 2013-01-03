@@ -63,31 +63,58 @@ def fMAD(image):
     return(m, s)
 
 #-----------------------------------------------------------------------------------------------
-def frobomad(image, zvalue=3):
+def frobomad(img, zvalue=3, axis=None):
     '''
     Fast and robust estimation of the mean and absolute value of an image.
     Uses fMAD and the histogram median method for speed.
     '''
     
-    #STEP 1: Start by getting the median and MAD as robust proxies for the mean and sd.
-    m,s = fMAD(image)
-    sd = 1.4826 * s
+    def _frobomad(image):
+        #STEP 1: Start by getting the median and MAD as robust proxies for the mean and sd.
+        m,s = fMAD(image)
+        sd = 1.4826 * s
 
-    if (sd < 1.0e-14):
-        return(m,sd)
-    else:
+        if (sd < 1.0e-14):
+            return(m,sd)
+        else:
+        
+		    #STEP 2: Identify outliers, recompute mean and std with pixels that remain.
+		    gdPix = np.where(abs(image - m) < zvalue*sd)
+		    m1 = np.mean(image[gdPix])
+		    sd1 = np.std(image[gdPix])
+		
+		    #STEP 3: Repeat step 2 with new mean and sdev values.
+		    gdPix = np.where(abs(image - m1) < (zvalue*sd1))
+		    m2 = np.mean(image[gdPix])
+		    sd2 = np.std(image[gdPix])
+		
+		    return(m2, sd2)
+
+    # ORIGINAL FUNCTION: Returns frobomad on the whole flattened array    
+    if axis is None:
+        return _frobomad(img)
     
-		#STEP 2: Identify outliers, recompute mean and std with pixels that remain.
-		gdPix = np.where(abs(image - m) < zvalue*sd)
-		m1 = np.mean(image[gdPix])
-		sd1 = np.std(image[gdPix])
-		
-		#STEP 3: Repeat step 2 with new mean and sdev values.
-		gdPix = np.where(abs(image - m1) < (zvalue*sd1))
-		m2 = np.mean(image[gdPix])
-		sd2 = np.std(image[gdPix])
-		
-		return(m2, sd2)
+    # NICK'S MOD: Returns frobomad along axis, i.e. for each row or column
+    else:        
+        # Reshape image so we can cycle along axis
+        img = np.rollaxis(img, axis)
+    
+        # Get shape of reshaped array minus the axis dimension,
+        # and the length of the axis dimension 
+        sh = img.shape[1:]
+        l = img.shape[0]
+        
+        # Preallocate mean and std vectors
+        m = np.zeros((img.size/l, 1))
+        sd = np.zeros((img.size/l, 1))
+
+        # Reshape the array so it is 2D, and find the median of each row.
+        for ii,row in enumerate(img.reshape(l,-1).T):
+            (m[ii], sd[ii]) = _frobomad(row)        
+
+        # Return the medians        
+        return (m.reshape(sh), sd.reshape(sh) )
+    
 		
 #-----------------------------------------------------------------------------------------------
 def findstars(input_image, zreject=3, zthresh=3, min_pix_per_star=6, max_pix_per_star=50, oblongness=1.5, mean=None, std=None, debug=False):

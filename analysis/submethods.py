@@ -46,18 +46,16 @@ def colmeansub(imgArray):
         botAvg = np.uint16( np.average(img[middle:ysize,:], axis=0) )
         
     elif (ysize, xsize) == (2192,2592):
-        # Delete dark columns on the left side of the image (16 cols)
-        dcols = [np.r_[0:16], np.r_[ysize-16:ysize]] 
-        img = np.delete(img, dcols, 1);
+        # Delete dark columns on the left/right sides of the image (16 cols)
+        img = img[:, 16:xsize-16]
         
         # Average the dark rows for each column, top and bottom
         topAvg = np.uint16( np.average(img[middle-16:middle,:], axis=0) )
         botAvg = np.uint16( np.average(img[middle:middle+16,:], axis=0) )
     
         # Delete the dark rows from the image and update middle
-        img = np.delete(img, np.r_[middle-16:middle+16], 0)
+        img = img[np.r_[0:middle-16, middle+16:ysize] ]
         middle -= 16;
-        
     else:
         raise RuntimeError('Please provide a full or cropped image')
     
