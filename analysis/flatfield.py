@@ -210,9 +210,8 @@ def FindNormFactor(target,imgArray,Method="Mean",Scalar=False):
             norm_factor.append(target/centroid.frobomad(imgArray[:,col])[0])
     return norm_factor
 
-
 #-----------------------------------------------------------------------------
-# ------------------------- Image Normalization ------------------------------
+# ----------------------- Image Normalization (NICK) -------------------------
 # ----------------------------------------------------------------------------
 
 def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
@@ -269,9 +268,6 @@ def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
     # Find top and bottom bg
     if bg is None:
         bg = (centroid.frobomad(img[:middle])[0], centroid.frobomad(img[middle:])[0] )
-        print bg
-    
-    print img.shape
     
     # Apply column averages to image 
     img[:middle] *= bg[0]/np.tile(topCol, (middle,1))

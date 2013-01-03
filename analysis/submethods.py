@@ -60,8 +60,8 @@ def colmeansub(imgArray):
         raise RuntimeError('Please provide a full or cropped image')
     
     # Subtract tiled averages
-    img[0:middle,:] -= np.tile(topAvg, (middle,1))
-    img[middle:ysize,:] -= np.tile(botAvg, (middle,1))
+    img[:middle] -= np.tile(topAvg, (middle,1))
+    img[middle:] -= np.tile(botAvg, (middle,1))
     
     # return subtracted image
     return img  
