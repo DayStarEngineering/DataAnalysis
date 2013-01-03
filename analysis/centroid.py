@@ -117,7 +117,7 @@ def frobomad(img, zvalue=3, axis=None):
     
 		
 #-----------------------------------------------------------------------------------------------
-def findstars(input_image, zreject=3, zthresh=3, min_pix_per_star=6, max_pix_per_star=50, oblongness=1.5, mean=None, std=None, debug=False):
+def findstars(input_image, zreject=3, zthresh=3, zpeakthresh=5, min_pix_per_star=6, max_pix_per_star=50, oblongness=1.5, mean=None, std=None, debug=False):
     '''
     Given an image, this function will return a set of approximate star centers and their widths in the following form:
     
@@ -185,6 +185,11 @@ def findstars(input_image, zreject=3, zthresh=3, min_pix_per_star=6, max_pix_per
                     except IndexError:
 	                    continue
 		                
+		                
+		    # Is the peak pixel of this star bright enough to not just be noise?
+		    if np.max(value) < mean + zpeakthresh*std:
+		        return []
+		    
             # Is this blob too small or too big to be a star?
             n = len(x)
             if n < min_pix_per_star or n > max_pix_per_star:
