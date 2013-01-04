@@ -45,10 +45,12 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type
     for q in quaternions:
         # Get rotation from epoch
         qtmp=transform.quaternion_multiply(qtmp,q)      # Multiply each quaternion by the sum of all previous quaternions
-        quats.append(np.array(np.hstack([qtmp[3],qtmp[0:3]])))
+        if method=='kevin':
+            quats.append(np.array(np.hstack([qtmp[3],qtmp[0:3]])))
+        else:
+            quats.append(np.array(np.hstack([qtmp[0:3],qtmp[3]])))
 
     [y,p,r]=quat2ypr(quats,method=method)
-
     y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw',filt_type=filt_type)     #radians
     p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch',filt_type=filt_type)     #radians
     r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll',filt_type=filt_type)     #radians
@@ -162,14 +164,14 @@ def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='s
         pylab.figure(num=None, figsize=(13, 7), dpi=80, facecolor='w', edgecolor='k')
         # Signal
         pylab.subplot(2,2,1)
-#        pylab.plot(np.arange(0,ns*delta,delta),series)
-        pylab.plot(series*180/math.pi*3600)
+        pylab.plot(np.arange(0,len(series)*delta,delta)[0:len(series)],series*180/math.pi*3600)
+#        pylab.plot(series*180/math.pi*3600)
         pylab.xlabel('Time')
         pylab.ylabel(variable + " [arcseconds]")
 
         pylab.subplot(2,2,3)
-        pylab.plot(new_series*180/math.pi*3600)
-#        pylab.plot(np.arange(0,ns*delta,delta),new_series)
+#        pylab.plot(new_series*180/math.pi*3600)
+        pylab.plot(np.arange(0,len(new_series)*delta,delta)[0:len(new_series)],new_series*180/math.pi*3600)
         pylab.xlabel('Time')
         pylab.ylabel('Filtered ' + variable + " [arcseconds]")
 
@@ -265,7 +267,7 @@ def sample_quats():
     tmp=np.loadtxt(open("./analysis/quats.csv","rb"),delimiter=",",skiprows=0)
     quats=[]
     for ii in range(tmp.size/4-1):
-        quats.append([tmp[3][ii],tmp[1][ii],tmp[2][ii],tmp[0][ii]])
+        quats.append([tmp[3][ii],tmp[2][ii],tmp[1][ii],tmp[0][ii]])
     return quats
 
 
