@@ -19,7 +19,7 @@ import math
 import sys
 import time
 
-def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type='ellip',method='kevin'):
+def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type='ellip',method='kevin',attitude='azelbore'):
     """
         Purpose: Find the variance of a set of quaternions. Low Frequency components are assumed to be invalid
                  and will be discarded. Intended for analyzing high-frequency variations in a set of rotation
@@ -50,7 +50,44 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type
         else:
             quats.append(np.array(np.hstack([qtmp[0:3],qtmp[3]])))
 
-    [y,p,r]=quat2ypr(quats,method=method)
+    if attitude == 'azelbore':
+        AZ = []
+        EL = []
+        PHI = []
+        x = np.array([1, 0, 0])
+        y = np.array([0, 1, 0])
+        for q in quats:
+            # Find rotation matrix from quaternion:
+            M = quat2dcm(q)
+            
+            # Rotate the x axis
+            xhat = np.dot(M,x)
+            
+            # Rotate the y axis
+            yhat = np.dot(M,y)
+            
+            # Find azimuth and elevation:
+            az = np.arctan2(xhat[1],xhat[0])
+            el = np.arcsin(xhat[2])
+            
+            # Find unrotate boresite y-axis:
+            yhatp = np.array([-np.sin(az),np.cos(az),0])
+            
+            # Find the boresight rotation:
+            phi = np.arccos(np.dot(yhat,yhatp))
+            
+            # Store data
+            AZ = AZ.append(az)
+            EL = EL.append(el)  
+            PHI = PHI.append(phi)      
+            
+        y_filt = high_pass(AZ,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Azimuth',filt_type=filt_type)     #radians
+        p_filt = high_pass(EL,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Elevation',filt_type=filt_type)     #radians
+        r_filt = high_pass(PHI,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Boresight Rotation',filt_type=filt_type)     #radians
+            
+    else:
+        [y,p,r]=quat2ypr(quats,method=method)
+    
     y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw',filt_type=filt_type)     #radians
     p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch',filt_type=filt_type)     #radians
     r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll',filt_type=filt_type)     #radians
