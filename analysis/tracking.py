@@ -102,7 +102,7 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type
     r_var = r_std**2
 #    var = 3600*(obs_std*180/math.pi)**2         # arcseconds
 
-    return y_var,p_var,r_var
+    return y_var,p_var,r_var,y_filt,p_filt,r_filt
 
 
 def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='signal'):
@@ -222,6 +222,33 @@ def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='s
         pylab.plot(np.fft.rfft(new_series))
         pylab.xlabel('Freq (Hz)')
         pylab.ylabel('Filtered Fourier Spectrum')
+
+
+        pylab.figure(num=None, figsize=(13, 7), dpi=80, facecolor='w', edgecolor='k')
+        pylab.title('Gondola Motion and Corresponding Signal Standard Deviation')
+        pylab.subplot(2,1,1)
+        pylab.grid()
+        pylab.plot(np.arange(0,len(series)*delta,delta)[0:len(series)],series*180/math.pi*3600)
+        pylab.xlabel('Time')
+        pylab.ylabel(variable + " [arcseconds]")
+
+        pylab.subplot(2,1,2)
+        pylab.grid()
+        pylab.plot(np.arange(0,len(new_series)*delta,delta)[0:len(new_series)],new_series*180/math.pi*3600)
+
+        moving_width = 16   # Do even numbers
+        stdseries=np.zeros(len(series))
+        for ii in np.arange(moving_width/2,len(series)-moving_width/2):
+            stdseries[ii]=np.std(new_series[ii-moving_width/2:ii+moving_width/2])
+
+        #3 Standard Deviation Envelope
+        pylab.plot(np.arange(0,len(stdseries)*delta,delta)[0:len(stdseries)],3*stdseries*180/math.pi*3600,color='red',linewidth=2)
+        pylab.plot(np.arange(0,len(stdseries)*delta,delta)[0:len(stdseries)],-3*stdseries*180/math.pi*3600,color='red',linewidth=2)
+        pylab.xlabel('Time')
+        pylab.ylabel(variable + " Moving STD [arcseconds]")
+        pylab.legend(['High Frequency Motion','+3 Sigma','-3 Sigma'])
+
+
 
     return new_series
 
