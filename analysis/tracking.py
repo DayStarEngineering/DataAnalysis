@@ -77,9 +77,9 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type
             phi = np.arccos(np.dot(yhat,yhatp))
             
             # Store data
-            AZ = AZ.append(az)
-            EL = EL.append(el)  
-            PHI = PHI.append(phi)      
+            AZ.append(az)
+            EL.append(el)
+            PHI.append(phi)
             
         y_filt = high_pass(AZ,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Azimuth',filt_type=filt_type)     #radians
         p_filt = high_pass(EL,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Elevation',filt_type=filt_type)     #radians
@@ -88,9 +88,9 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type
     else:
         [y,p,r]=quat2ypr(quats,method=method)
     
-    y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw',filt_type=filt_type)     #radians
-    p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch',filt_type=filt_type)     #radians
-    r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll',filt_type=filt_type)     #radians
+        y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw',filt_type=filt_type)     #radians
+        p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch',filt_type=filt_type)     #radians
+        r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll',filt_type=filt_type)     #radians
 
 #    obs_std = np.sqrt(np.std(r_filt)**2 + np.std(p_filt)**2 + np.std(y_filt)**2)    #Standard deviation
     y_std = 3600*(np.std(y_filt)*180/math.pi)
