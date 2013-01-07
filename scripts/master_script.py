@@ -160,8 +160,8 @@ quats,matched_centroids,nummatchstars = getQuaternions(centroids)
 print 'Find yaw, pitch, and roll rms.'
 # Get the roll, pitch, yaw variances:
 delta_t = 0.1 # s
-motion_frequency = 1.5 # Hz
-var_y,var_p,var_r= tracking.FindVariance(quats,delta_t=delta_t,motion_frequency=motion_frequency,plot=plot)
+motion_frequency = 3.5 # Hz
+var_y,var_p,var_r,a,b,c = tracking.FindVariance(quats,delta_t=delta_t,motion_frequency=motion_frequency,plot=plot)
 toc = time.clock()
 print 'YPR rms: ',np.sqrt(var_y),np.sqrt(var_p),np.sqrt(var_r)
 print 'Total time: ' + str(toc - tic) + ' s'

@@ -81,9 +81,9 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=3,plot=False,filt_type
             EL.append(el)
             PHI.append(phi)
             
-        y_filt = high_pass(AZ,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Azimuth',filt_type=filt_type,color='blue')     #radians
-        p_filt = high_pass(EL,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Elevation',filt_type=filt_type,color='purple')     #radians
-        r_filt = high_pass(PHI,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Boresight Rotation',filt_type=filt_type,color='green')     #radians
+        y_filt = high_pass(AZ,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Yaw',filt_type=filt_type,color='blue')     #radians
+        p_filt = high_pass(EL,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Pitch',filt_type=filt_type,color='purple')     #radians
+        r_filt = high_pass(PHI,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Roll',filt_type=filt_type,color='green')     #radians
             
     else:
         [y,p,r]=quat2ypr(quats,method=method)
