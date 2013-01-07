@@ -127,6 +127,7 @@ class DatabaseConnect:
     def panda_select(self):
         con = self.MySQLconnect(self.env)
         value = psql.frame_query('select * from stock_test', con=con)
+        value.sort()
         return value
 
 
@@ -152,6 +153,7 @@ class DatabaseConnect:
             print query
         value = psql.frame_query(query,con=con)
         con.close()
+        value.sort()
         return value
 
 

@@ -24,7 +24,7 @@ import time
 ###################################################################################
 # Load the image:
 db = database.Connect()
-fnames = db.select('select raw_fn from rawdata where burst_num = 172 limit 2').raw_fn.tolist()
+fnames = db.select('select raw_fn from rawdata where burst_num = 15 limit 2').raw_fn.tolist()
 fname = fnames[0]
 print 'Opening: ' + fname
 image = imgutil.loadimg(fname,from_database=True)
@@ -37,7 +37,7 @@ toc = time.clock()
 
 # Find star centroids:
 centroids = []
-(centers) = centroid.findstars(image,zreject=4, zthresh=3.2, zpeakthresh=5, min_pix_per_star=5, max_pix_per_star=60, oblongness=2,debug=True)
+(centers) = centroid.findstars(image,zreject=3, zthresh=3.0, zpeakthresh=4, min_pix_per_star=6, max_pix_per_star=60, oblongness=2,debug=True)
 centroids = centroid.imgcentroid(image,centers)
 
         

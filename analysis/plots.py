@@ -4,8 +4,8 @@
 import pylab as pl
 import numpy as np
 import matplotlib.pyplot as plt
-
-def starpaths(image, centroids, quiet=False, fname=False):
+        
+def starpaths(image, centroids, quiet=False, fname=False, radius=10):
     '''
     Plot the path of stars on top of an image
     '''
@@ -13,17 +13,22 @@ def starpaths(image, centroids, quiet=False, fname=False):
     fig = pl.gray()
     fig = pl.imshow(image, cmap=None, norm=None, aspect=None,
                 interpolation='nearest', vmin=0, vmax=2048, origin='upper')
-    radius = 10
-    color = 'r'
+
     for centlist in centroids:
         for pos in centlist:
-            circ = pl.Circle(tuple(pos), radius, ec=color, fill=False)
+            circ = pl.Circle(tuple(pos), radius, ec='r', fill=False)
             fig = pl.gca().add_patch(circ)
     
     if not quiet:
         fig = pl.show()
     if fname:
         pl.savefig(fname)
+
+def colorgen():
+    color = ['b','c','r','g','m','y']
+    while True:
+        for c in color:
+            yield c
 
 def starnum(numstars, quiet=False, fname=False):
     '''

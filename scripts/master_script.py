@@ -56,7 +56,10 @@ def getCentroids(fnames):
         
         # Find stars in image:
         #centers = centroid.findstars(image)
-        centers = centroid.findstars(image,zreject=4, zthresh=3.2, zpeakthresh=5, min_pix_per_star=6, max_pix_per_star=60, oblongness=2,debug=False)
+        # Nighttime:
+        #centers = centroid.findstars(image,zreject=4, zthresh=3.2, zpeakthresh=5, min_pix_per_star=6, max_pix_per_star=60, oblongness=2,debug=False)
+        # Daytime:        
+        centers = centroid.findstars(image,zreject=3, zthresh=3.0, zpeakthresh=4, min_pix_per_star=6, max_pix_per_star=60, oblongness=2,debug=False)
         
         # Get centroids:
         centroids.append(centroid.imgcentroid(image,centers))
@@ -126,7 +129,12 @@ plot = True
 # Get desired filenames from database:
 print 'Loading filenames from database.'
 db = database.Connect()
-fnames = db.select('select raw_fn from rawdata where burst_num = 172 limit 501').raw_fn.tolist()
+
+# Nighttime:
+#fnames = db.select('select raw_fn from rawdata where burst_num = 172 limit 501').raw_fn.tolist()
+
+# Daytime:
+fnames = db.select('select raw_fn from rawdata where burst_num = 15 limit 501').raw_fn.tolist()
 #fnames = db.find('raw_fn','burst_num = 175 limit 5').raw_fn.tolist()
 
         
