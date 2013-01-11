@@ -20,7 +20,7 @@ import math
 import sys
 import time
 
-def FindVariance(quaternions,delta_t=0.1,motion_frequency=3,plot=False,filt_type='ellip',method='kevin',attitude='azelbore'):
+def FindVariance(quaternions,delta_t=0.1,motion_frequency=3,plot=False,filt_type='ellip',method='kevin',attitude='diff'):
     """
         Purpose: Find the variance of a set of quaternions. Low Frequency components are assumed to be invalid
                  and will be discarded. Intended for analyzing high-frequency variations in a set of rotation
@@ -55,27 +55,27 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=3,plot=False,filt_type
         AZ = []
         EL = []
         PHI = []
+        z = np.array([0, 0, 1])
         x = np.array([1, 0, 0])
-        y = np.array([0, 1, 0])
         for q in quats:
             # Find rotation matrix from quaternion:
             M = quat2dcm(q)
             
             # Rotate the x axis
-            xhat = np.dot(M,x)
+            zhat = np.dot(M,z)
             
             # Rotate the y axis
-            yhat = np.dot(M,y)
+            xhat = np.dot(M,x)
             
             # Find azimuth and elevation:
-            az = np.arctan2(xhat[1],xhat[0])
-            el = np.arcsin(xhat[2])
+            az = np.arctan2(zhat[0],zhat[2])
+            el = np.arcsin(zhat[1])
             
             # Find unrotate boresite y-axis:
-            yhatp = np.array([-np.sin(az),np.cos(az),0])
+            xhatp = np.array([np.cos(az), 0, -np.sin(az)])
             
             # Find the boresight rotation:
-            phi = np.arccos(np.dot(yhat,yhatp))
+            phi = np.arccos(np.dot(xhat,xhatp))
             
             # Store data
             AZ.append(az)
@@ -116,24 +116,24 @@ def project2d(y,p,r):
     T = map(euler3212dcm,y,p,r)
     
     # Rotate unit x-vector
-    z = np.array([0,0,1])
+    z = np.array([1,0,0])
     X = []
     for t in T:
         X.append(np.dot(t,z))
     
-    # Reconfigure th array:
+    # Reconfigure the array:
     X = zip(*X)
-    x = np.array(X[0])*3600*180/np.pi
     y = np.array(X[1])*3600*180/np.pi
+    z = np.array(X[2])*3600*180/np.pi
     
     # Get standard deviation:
-    d = np.sqrt(np.sum((x**2+y**2)/len(x)))
+    d = np.sqrt(np.sum((y**2+z**2)/len(y)))
     alpha = np.arctan2(d,1);
     print 'Accuracy: ',alpha,' arcseconds'
     
     # Plot the results:
     pylab.figure()
-    pylab.plot(x,y,'.')
+    pylab.plot(-y,-z,'.')
     pylab.axis('equal')
     pylab.xlabel('X (arcseconds)')
     pylab.ylabel('Y (arcseconds)')
