@@ -9,6 +9,7 @@ __author__ = 'zachdischner'
 """
 
 import numpy as np
+from numpy import linalg
 import transformations as transform
 import scipy as sp
 from scipy import signal,polyfit,polyval
@@ -92,6 +93,10 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=3,plot=False,filt_type
         p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch',filt_type=filt_type,color='purple')     #radians
         r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll',filt_type=filt_type,color='green')     #radians
 
+
+    # project filtered results on 2d plane:
+    project2d(y_filt,p_filt,r_filt)
+    
 #    obs_std = np.sqrt(np.std(r_filt)**2 + np.std(p_filt)**2 + np.std(y_filt)**2)    #Standard deviation
     y_std = 3600*(np.std(y_filt)*180/math.pi)
     p_std = 3600*(np.std(p_filt)*180/math.pi)
@@ -105,6 +110,35 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=3,plot=False,filt_type
     return y_var,p_var,r_var,y_filt,p_filt,r_filt
 
 
+def project2d(y,p,r):
+
+    # Convert y,p,r to transformation matrix:
+    T = map(euler3212dcm,y,p,r)
+    
+    # Rotate unit x-vector
+    z = np.array([0,0,1])
+    X = []
+    for t in T:
+        X.append(np.dot(t,z))
+    
+    # Reconfigure th array:
+    X = zip(*X)
+    x = np.array(X[0])*3600*180/np.pi
+    y = np.array(X[1])*3600*180/np.pi
+    
+    # Get standard deviation:
+    d = np.sqrt(np.sum((x**2+y**2)/len(x)))
+    alpha = np.arctan2(d,1);
+    print 'Accuracy: ',alpha,' arcseconds'
+    
+    # Plot the results:
+    pylab.figure()
+    pylab.plot(x,y,'.')
+    pylab.axis('equal')
+    pylab.xlabel('X (arcseconds)')
+    pylab.ylabel('Y (arcseconds)')
+    pylab.grid(True)
+    
 def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='signal',color='blue'):
     """
         Purpose: High-pass filter a single array series using fourrier transforms.
@@ -401,6 +435,17 @@ def quat2dcm(q):
     return np.array([[q[0]**2+q[1]**2-q[2]**2-q[3]**2, 2*(q[1]*q[2]+q[0]*q[3]), 2*(q[1]*q[3]-q[0]*q[2])],
                     [2*(q[1]*q[2]-q[0]*q[3]), q[0]**2-q[1]**2+q[2]**2-q[3]**2, 2*(q[2]*q[3]+q[0]*q[1])],
                     [2*(q[1]*q[3]+q[0]*q[2]), 2*(q[2]*q[3]-q[0]*q[1]), q[0]**2-q[1]**2-q[2]**2+q[3]**2]]);
+                    
+def euler3212dcm(y,p,r):
+    cy = np.cos(y)
+    cp = np.cos(p)
+    cr = np.cos(r)
+    sy = np.sin(y)
+    sp = np.sin(p)
+    sr = np.sin(r)
+    return np.array([[           cy*cp,            sy*cp,   -sp],
+                     [cy*sp*sr - sy*cr, sy*sp*sr + cy*cr, cp*sr],
+                     [cy*sp*cr + sy*sr, sy*sp*cr - cy*sr, cp*cr]]) 
 
 def power_spectrum(series,sampling_frequency=1):
     """
