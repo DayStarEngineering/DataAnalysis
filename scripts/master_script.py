@@ -56,7 +56,10 @@ def getCentroids(fnames):
         
         # Find stars in image:
         #centers = centroid.findstars(image)
+        # Nighttime:
         centers = centroid.findstars(image,zreject=4, zthresh=3.2, zpeakthresh=5, min_pix_per_star=6, max_pix_per_star=60, oblongness=2,debug=False)
+        # Daytime:        
+        #centers = centroid.findstars(image,zreject=3, zthresh=3.0, zpeakthresh=4, min_pix_per_star=6, max_pix_per_star=60, oblongness=2,debug=False)
         
         # Get centroids:
         centroids.append(centroid.imgcentroid(image,centers))
@@ -126,8 +129,14 @@ plot = True
 # Get desired filenames from database:
 print 'Loading filenames from database.'
 db = database.Connect()
+
+# Nighttime:
 fnames = db.select('select raw_fn from rawdata where burst_num = 172 limit 501').raw_fn.tolist()
+
+# Daytime:
+#fnames = db.select('select raw_fn from rawdata where burst_num = 15 limit 501').raw_fn.tolist()
 #fnames = db.find('raw_fn','burst_num = 175 limit 5').raw_fn.tolist()
+fnames.sort()
 
         
 print 'Starting analysis.'
@@ -151,8 +160,8 @@ quats,matched_centroids,nummatchstars = getQuaternions(centroids)
 print 'Find yaw, pitch, and roll rms.'
 # Get the roll, pitch, yaw variances:
 delta_t = 0.1 # s
-motion_frequency = 1.5 # Hz
-var_y,var_p,var_r= tracking.FindVariance(quats,delta_t=delta_t,motion_frequency=motion_frequency,plot=plot)
+motion_frequency = 3.5 # Hz
+var_y,var_p,var_r,a,b,c = tracking.FindVariance(quats,delta_t=delta_t,motion_frequency=motion_frequency,plot=plot)
 toc = time.clock()
 print 'YPR rms: ',np.sqrt(var_y),np.sqrt(var_p),np.sqrt(var_r)
 print 'Total time: ' + str(toc - tic) + ' s'
