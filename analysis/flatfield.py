@@ -231,7 +231,7 @@ def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
     """
     
     # Deepcopy
-    img = np.int16( cp.deepcopy(imgArray) )
+    img = np.float64( cp.deepcopy(imgArray) )
 
     # Get size of the image
     [ysize, xsize] = img.shape
@@ -270,9 +270,15 @@ def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
     if bg is None:
         bg = (centroid.frobomad(img[:middle])[0], centroid.frobomad(img[middle:])[0] )
     
-    # Apply column averages to image 
+    # Apply column averages to image
+
+#    top= img[:middle]*bg[0]/np.tile(topCol, (middle,1))
+#    bottom=img[middle:]* bg[1]/np.tile(botCol, (middle,1))
+#    img=np.append(top,bottom,0)
+
     img[:middle] *= bg[0]/np.tile(topCol, (middle,1))
     img[middle:] *= bg[1]/np.tile(botCol, (middle,1))
+
     
     # return subtracted image
     return img  
