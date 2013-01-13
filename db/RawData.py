@@ -54,7 +54,7 @@ class Connect(DayStarDB.DatabaseConnect):
         print "Altering Table"
         self.execute_statement("ALTER TABLE rawdata ADD norm_fn VARCHAR(100) DEFAULT 0 AFTER raw_fn")
         self.execute_statement("ALTER TABLE rawdata ADD centroid_list VARCHAR(100)")
-        self.execute_statement("ALTER TABLE rawdata ADD quaternions VARCHAR(20)")
+        self.execute_statement("ALTER TABLE rawdata ADD quaternions VARCHAR(200)")
 
 
 
@@ -74,3 +74,28 @@ class Connect(DayStarDB.DatabaseConnect):
         self.initialize_raw_table()
         self.seed_raw_table()
 
+
+
+#     Find quaternions in a database.
+#           Returns a list of quats, given a WHERE statement.
+#           like:
+#               quats=DB.find_quats("burst_num=134")
+
+    def find_quats(self,where):
+        quatsDB=self.find('quaternions',where).quaternions
+        quats=[]
+        for q in quatsDB:
+            if q is None:
+                print "The quaternion does not exist in the database."
+            else:
+                quats.append(eval(q))
+
+        return quats
+
+
+#   Put a quaternion list into a database
+#       give it a [quat], and the id where we want to insert it into.
+#           *Gotta "select id,raw_fn from...
+    
+    def insert_quat(self,quat,id):
+        self.update('quaternions','id=%s' % id,'"%s"' % quat)
