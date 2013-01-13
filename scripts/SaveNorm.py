@@ -27,7 +27,7 @@ def main():
 
             print "Normalizng " + fname + " image # %s of %s" % (count,n)
             # Load the image:
-            image = imgutil.loadimg(fname,from_database=True)
+            image = imgutil.loadimg(fname,from_database=True,load_full=True)
 
             # Normalize up image:
             image = flatfield.ImgNormalize(image, Method="mean")
