@@ -268,7 +268,7 @@ def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
     
     # Find top and bottom bg
     if bg is None:
-        bg = (centroid.frobomad(img[:middle])[0], centroid.frobomad(img[middle:])[0] )
+        bg = centroid.frobomad(img[:middle])[0]
     
     # Apply column averages to image
 
@@ -276,8 +276,9 @@ def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
 #    bottom=img[middle:]* bg[1]/np.tile(botCol, (middle,1))
 #    img=np.append(top,bottom,0)
 
-    img[:middle] = img[:middle]*bg[0]/np.tile(topCol, (middle,1))
-    img[middle:] = img[middle:]*bg[1]/np.tile(botCol, (middle,1))
+
+    img[:middle] = img[:middle]*bg/np.tile(topCol, (middle,1))
+    img[middle:] = img[middle:]*bg/np.tile(botCol, (middle,1))
 
     
     # return subtracted image
