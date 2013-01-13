@@ -125,13 +125,20 @@ pl.close('all')
 
 # Which plots do you want brah?
 plot = True
+burst_num = 172
+load_centroids = True   # Try to load from database
+load_quats = True       # Try to load from database
+compute_centroids = not load_centroids
+compute_quats = not load_quats
+
 
 # Get desired filenames from database:
 print 'Loading filenames from database.'
 db = database.Connect()
 
 # Nighttime:
-data = db.select('select id,raw_fn from rawdata where burst_num = 172 limit 501')
+
+data = db.select('select id,raw_fn from rawdata where burst_num = %s limit 501' % burst_num)
 fnames = data.raw_fn.tolist()
 id = data.id.tolist()
 # Daytime:
@@ -144,11 +151,21 @@ print 'Starting analysis.'
 tic = time.clock()
 
 # Get centroids from each file:
-centroids,numstars = getCentroids(fnames)
+if load_centroids:
+    centroids = db.find_centroids("burst_num = %s" % burst_num)
+    numstars = db.find_num_centroids("burst_num = %s" % burst_num)
+    if centroids ==[]:
+        compute_centroids=True
 
-# update centroid list into the database
-for count,cent in enumerate(centroids):
-    db.insert_centroids(cent,id[count])
+if compute_centroids:
+    centroids,numstars = getCentroids(fnames)
+    # update centroid list into the database
+    for count,cent in enumerate(centroids):
+        db.insert_centroids(cent,id[count])
+        db.insert_num_centroids(numstars[count],id[count])
+
+
+
     
 print 'Mean number of stars found: ', np.mean(numstars)
 
@@ -158,12 +175,24 @@ pname = "saved_centroids_" + time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime()) +
 pickle.dump( centroids, open( pname, "wb" ) )
 centroids = pickle.load( open( pname, "rb" ) )
 
-# Get quaternions from our centroids:
-quats,matched_centroids,nummatchstars = getQuaternions(centroids)
 
-# update quaternions into the database
-for count,q in enumerate(quats):
-    db.insert_quat(q,id[count])
+# Get quaternions from our centroids:
+if load_quats:
+    quats = db.find_quats("burst_num = %s" % burst_num)
+    nummatchstars = db.find_num_matched_centroids("burst_num = %s" % burst_num)
+    matched_centroids=db.find_matched_centroids("burst_num= %s" % burst_num)
+    if quats ==[]:
+        compute_quats=True
+
+
+if compute_quats:
+    quats,matched_centroids,nummatchstars = getQuaternions(centroids)
+    # update quaternions into the database
+    for count,q in enumerate(quats):
+        db.insert_quat(q,id[count])
+        db.insert_num_matched_centroids(nummatchstars,id[count])
+        db.insert_matched_centroids(matched_centroids[count],id[count])
+
 
 
 print 'Find yaw, pitch, and roll rms.'
