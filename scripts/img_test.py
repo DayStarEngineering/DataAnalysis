@@ -22,35 +22,38 @@ from analysis import centroid as centroid
 from analysis import flatfield as flat
 
 # Load the image:
-image1 = imgutil.loadimg('/home/sticky/Daystar/img_1348368011_459492_00146_00000_1.dat')
-image2 = imgutil.loadimg('/home/sticky/Daystar/img_1348355543_717188_00015_00000_0.dat', load_full=True)
-
-#img = sm.colmeansub(image)
-#img2 = sm.colmeansub(image2)
-#img3 = sm.darkcolsub(image2)
+image = imgutil.loadimg('/home/sticky/Daystar/day1.dat')
+#image = imgutil.loadimg('/home/sticky/Daystar/img_1348355543_717188_00015_00000_0.dat', 
+#                        load_full=True)
+#image = imgutil.loadimg('/home/sticky/Daystar/img_1348370070_656182_00172_00000_1.dat')
 
 
-#### Nighttime Test ####
-t1 = time.time()
-img1 = flat.ImgNormalize(image2, Method="robustmean", source="image")
+# Apply flatfield
+img1 = flat.ImgNormalize(image, Method="mean", source="image")
+#img1 = flat.ImgNormalize(img1, Method="mean", source="image")
+img2 = sm.colmeansub(image)
 
-t2 = time.time()
-img2 = flat.NormalizeColumnGains(image2, Method="robustmean", JustDark=0)
+# Find stars
+centers = centroid.findstars(img1, zreject=3, zthresh=3.0, zpeakthresh=4, min_pix_per_star=6, max_pix_per_star=60, oblongness=5,debug=False)
 
-t3 = time.time()
 
-print t2-t1
-print t3-t2
+C = centroid.imgcentroid(image,centers)
+
+
 
 #img3 = sm.colmeansub(img2)
 #img4 = sm.colmeansub(image2)
 
 #img3 = np.delete(img3, np.r_[1080:1080+32], 0)
 
-#imgutil.dispimg(image2,2)
-imgutil.dispimg(sm.colmeansub(img1),3)
-imgutil.dispimg(sm.colmeansub(img2),3)
-#imgutil.dispimg(img3,3)
+#imgutil.dispimg(image,1)
+#imgutil.dispimg(img1,1)
+#imgutil.dispimg(img2,6)
+
+#imgutil.dispimg(sm.bgsub(img1), 6)
+#imgutil.dispimg(sm.colmeansub(img1), 6)
+
+imgutil.circstars(sm.colmeansub(img1), C, viewfactor=3)
 
 
 

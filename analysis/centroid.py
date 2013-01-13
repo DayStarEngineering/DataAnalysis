@@ -79,7 +79,7 @@ def frobomad(img, zvalue=3, axis=None):
         else:
         
 		    #STEP 2: Identify outliers, recompute mean and std with pixels that remain.
-		    gdPix = np.where(abs(image - m) < zvalue*sd)
+		    gdPix = np.where(abs(image - m) < (zvalue*sd))
 		    m1 = np.mean(image[gdPix])
 		    sd1 = np.std(image[gdPix])
 		

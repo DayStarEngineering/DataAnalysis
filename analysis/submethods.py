@@ -12,7 +12,7 @@
 import numpy as np
 import chzphot as chzphot
 import copy as cp
-
+import centroid as centroid
 
 # ----------- unit16 subtraction ---------------
 def subtract_uint16(a, b):
@@ -24,6 +24,32 @@ def subtract_uint16(a, b):
         return (np.uint16(0)) # return 0
     else:
         return (a-b)
+
+
+
+# ----------------------- Background Subtraction -----------------------------
+def bgsub(imgArray):
+    '''
+    Subtracts the robust mean of the image. Intended for images that are naturally
+    flat-fielded or have been normalized.
+    '''
+    # Deepcopy
+    img = np.int16( cp.deepcopy(imgArray) )
+    
+    # Get size of the image
+    [ysize, xsize] = img.shape
+    middle = int(ysize/2)
+    
+    # Find background values
+    bgTop = centroid.frobomad(img[:middle])[0]
+    bgBot = centroid.frobomad(img[middle:])[0]
+ 
+    # Subtract from image
+    img[:middle] -= bgTop
+    img[middle:] -= bgBot
+ 
+    # Subtract from image and return
+    return img  
 
 # ----------------------- Column Mean Subtraction -----------------------------
 def colmeansub(imgArray):
