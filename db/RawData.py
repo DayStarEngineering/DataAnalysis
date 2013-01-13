@@ -53,7 +53,7 @@ class Connect(DayStarDB.DatabaseConnect):
             self.seed_raw_table()
         print "Altering Table"
         self.execute_statement("ALTER TABLE rawdata ADD norm_fn VARCHAR(100) DEFAULT 0 AFTER raw_fn")
-        self.execute_statement("ALTER TABLE rawdata ADD centroid_list VARCHAR(100)")
+        self.execute_statement("ALTER TABLE rawdata ADD centroid_list VARCHAR(2000)")
         self.execute_statement("ALTER TABLE rawdata ADD quaternions VARCHAR(200)")
 
 
@@ -96,6 +96,25 @@ class Connect(DayStarDB.DatabaseConnect):
 #   Put a quaternion list into a database
 #       give it a [quat], and the id where we want to insert it into.
 #           *Gotta "select id,raw_fn from...
-    
     def insert_quat(self,quat,id):
         self.update('quaternions','id=%s' % id,'"%s"' % quat)
+
+
+
+#         Insert centroid list. Same as above.
+#       *centroid_list is a list    [(x,y),(x,y)...]
+    def insert_centroids(self,centroid_list,id):
+        self.update('centroid_list','id=%s' % id,'"%s"' % centroid_list)
+
+
+#   Same as above. Get list of centroid arrays based on a SQL where statement
+    def find_centroids(self,where):
+        centroidsDB=self.find('centroid_list',where).centroid_list
+        centroids=[]
+        for cent in centroidsDB:
+            if cent is None:
+                print "The centroid list does not exist in the database."
+            else:
+                centroids.append(eval(cent))
+
+        return centroids
