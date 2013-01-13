@@ -74,29 +74,58 @@ def project3D(centlist,vpix=2160,hpix=2560,plate_scale=6.5,f=150000):
     hpix = horizontal pixels
     plate_scale = microns/pixel
     f = focal length in microns
+    
+    This function converts from the image (X,Y) frame to the 3D (x,y,z) frame. 
+    In the image frame, positive X represents increasing columns, while increasing
+    Y represents increasing rows. In the 3D frame, x is forward out of the image, 
+    y is left (decreasing columns) and z is up (decreasing rows).
+    
+     ________________
+    |                |
+    |        z       |
+    |                |
+    |        |       |
+    |  y  <----> X   |  x is into page (toward stars)
+    |        |       |
+    |                |
+    |        Y       |  
+    |________________|
+    
+    
+    To convert to this new frame, we think of centroid pairs as converting from
+    (X,Y) to (-y,-z)
     '''
         
     def pos2Dto3D((xi,yi)):
         '''pos2Dto3D(): returns (x,y,z) given (x,y)'''
         
-        # CMOS center
+        # CMOS center and shifted (X,Y) coords
         xp = plate_scale*hpix/2; #x-center [microns]
         yp = plate_scale*vpix/2; #y-center [microns]
         
-        ff = f*f
         x = (xp-xi)
-        xx = x*x
         y = (yp-yi)
+        
+        # Focus vector, image vector, and 3D vector magnitude
+        ff = f*f
+        xx = x*x
         yy = y*y
         C = 1/math.sqrt(ff + xx + yy)
+       
+        # New version - see comments above
+        xv = C*f
+        yv = -C*x
+        zv = -C*y
         
-        xv = C*x
-        yv = C*y
-        zv = C*f
+        # Old version - keeps x and y in image frame
+        #xv = C*x
+        #yv = C*y
+        #zv = C*f
 
         return xv,yv,zv
 
     return map(pos2Dto3D,centlist)
+
 
 '''
 # Test this shit
