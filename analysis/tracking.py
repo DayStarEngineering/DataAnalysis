@@ -21,83 +21,103 @@ import sys
 import time
 
 def FindVariance(quaternions,delta_t=0.1,motion_frequency=3,plot=False,filt_type='ellip',method='kevin',attitude='diff'):
-    """
-        Purpose: Find the variance of a set of quaternions. Low Frequency components are assumed to be invalid
-                 and will be discarded. Intended for analyzing high-frequency variations in a set of rotation
-                 quaternions, specifically for the DayStar platform.
-        Inputs: quaternions - List of quaternion arrays, formatted 'SXYZ' I think.
-                delta_t - (optional) Time between quaternion observations [s]. Assumed (and must be) uniform for all frames
-                motion_frequency - (optional) The Frequency we want to filter below
-                plot - (optional) Set to generate plots of the fourrier filterig as we do it, to see how the signal
-                       changes
-                variable -(optional), the name of the signal being filtered. Used for plot labeling.
-                {filt_type}  -(optional) Specify filter type. Either:
+    '''
+    Purpose: Find the variance of a set of quaternions. Low Frequency components 
+    are assumed to be invalid and will be discarded. Intended for analyzing
+    high-frequency variations in a set of rotation quaternions, specifically for 
+    the DayStar platform.
+        
+    Inputs: quaternions - List of quaternion arrays, formatted 'SXYZ' I think.
+            delta_t - (optional) Time between quaternion observations [s].
+                      Assumed (and must be) uniform for all frames
+            motion_frequency - (optional) The Frequency we want to filter below
+            plot - (optional) Set to generate plots of the Fourier filterig as 
+                   we do it, to see how the signal changes
+            variable - (optional), the name of the signal being filtered. Used for
+                       plot labeling.
+            {filt_type} - (optional) Specify filter type. Either:
                     * 'ellip' - try a scipy elliptical filter
                     * 'brick' - try a simple brick wall filter
-        Outputs: var - The computed variance of all observations. Meant to be some indication of DayStar performance
+                    
+    Outputs: var - The computed variance of all observations. Meant to be some 
+                   indication of DayStar performance
 
-        **NOTE**
-            MOTION_FREQUENCY KEYWORD MUST BE GREATER THAN 1 FOR ELLIPTICAL FILTER. It is an inverse ratio of the full spectrum
-            that we wish to cut off. So a '4' will cutoff (1/4) of the frequency spectrum.
-    """
+    **NOTE**
+    MOTION_FREQUENCY KEYWORD MUST BE GREATER THAN 1 FOR ELLIPTICAL FILTER. 
+    It is an inverse ratio of the full spectrum that we wish to cut off. So a
+    '4' will cutoff (1/4) of the frequency spectrum.
+    '''
+    
     # Hey, do this later smarter
     quats=[]
     qtmp=quaternions[0]
+    
     for q in quaternions:
-        # Get rotation from epoch
-        qtmp=transform.quaternion_multiply(qtmp,q)      # Multiply each quaternion by the sum of all previous quaternions
-        if method=='kevin':
+        # Get rotation from epoch by multiplying each quaternion by the sum
+        # of all previous quaternions
+        qtmp=transform.quaternion_multiply(qtmp,q)     
+        
+        if method == 'kevin':
             quats.append(np.array(np.hstack([qtmp[3],qtmp[0:3]])))
         else:
             quats.append(np.array(np.hstack([qtmp[0:3],qtmp[3]])))
 
     if attitude == 'azelbore':
+        # 3D frame unit vectors
+        x = np.array([1, 0, 0])
+        y = np.array([0, 1, 0])
+        z = np.array([0, 0, 1])
+        
         AZ = []
         EL = []
         PHI = []
-        z = np.array([0, 0, 1])
-        x = np.array([1, 0, 0])
+        
         for q in quats:
             # Find rotation matrix from quaternion:
             M = quat2dcm(q)
             
-            # Rotate the x axis
-            zhat = np.dot(M,z)
-            
-            # Rotate the y axis
-            xhat = np.dot(M,x)
+            # Rotate the x and y axes of the 3D frame
+            xhat = np.dot(M,z)
+            yhat = np.dot(M,x)
             
             # Find azimuth and elevation:
-            az = np.arctan2(zhat[0],zhat[2])
-            el = np.arcsin(zhat[1])
+            az = np.arctan2(xhat[0], xhat[1])
+            el = np.arcsin(xhat[2])
             
-            # Find unrotate boresite y-axis:
-            xhatp = np.array([np.cos(az), 0, -np.sin(az)])
+            # Find unrotated boresite y-axis:
+            yhatp = np.array([-np.sin(az), np.cos(az), 0])
             
             # Find the boresight rotation:
-            phi = np.arccos(np.dot(xhat,xhatp))
+            phi = np.arccos(np.dot(yhat,yhatp))
             
             # Store data
             AZ.append(az)
             EL.append(el)
             PHI.append(phi)
             
-        y_filt = high_pass(AZ,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Yaw',filt_type=filt_type,color='blue')     #radians
-        p_filt = high_pass(EL,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Pitch',filt_type=filt_type,color='purple')     #radians
-        r_filt = high_pass(PHI,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Roll',filt_type=filt_type,color='green')     #radians
+        y_filt = high_pass(AZ,  cutoff=motion_frequency, delta=delta_t, plot=plot,
+                           variable='Yaw', filt_type=filt_type, color='blue') #radians
+        p_filt = high_pass(EL,  cutoff=motion_frequency, delta=delta_t, plot=plot,
+                           variable='Pitch', filt_type=filt_type, color='purple') #radians
+        r_filt = high_pass(PHI, cutoff=motion_frequency, delta=delta_t, plot=plot,
+                           variable='Roll', filt_type=filt_type, color='green') #radians
             
     else:
         [y,p,r]=quat2ypr(quats,method=method)
     
-        y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw',filt_type=filt_type,color='blue')     #radians
-        p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch',filt_type=filt_type,color='purple')     #radians
-        r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll',filt_type=filt_type,color='green')     #radians
+        y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,
+                           variable='yaw',filt_type=filt_type,color='blue') #radians
+        p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,
+                           variable='pitch',filt_type=filt_type,color='purple') #radians
+        r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,
+                           variable='roll',filt_type=filt_type,color='green') #radians
 
 
-    # project filtered results on 2d plane:
+    # Project filtered results on 2d plane:
     project2d(y_filt,p_filt,r_filt)
     
-#    obs_std = np.sqrt(np.std(r_filt)**2 + np.std(p_filt)**2 + np.std(y_filt)**2)    #Standard deviation
+    #Standard deviation
+    #obs_std = np.sqrt(np.std(r_filt)**2 + np.std(p_filt)**2 + np.std(y_filt)**2)    
     y_std = 3600*(np.std(y_filt)*180/math.pi)
     p_std = 3600*(np.std(p_filt)*180/math.pi)
     r_std = 3600*(np.std(r_filt)*180/math.pi)
@@ -105,12 +125,15 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=3,plot=False,filt_type
     y_var = y_std**2
     p_var = p_std**2
     r_var = r_std**2
-#    var = 3600*(obs_std*180/math.pi)**2         # arcseconds
+    #var = 3600*(obs_std*180/math.pi)**2  # arcseconds
 
     return y_var,p_var,r_var,y_filt,p_filt,r_filt
 
 
 def project2d(y,p,r):
+    '''
+    Project yaw, ptich and roll values back into the 2D image frame.
+    '''
 
     # Convert y,p,r to transformation matrix:
     T = map(euler3212dcm,y,p,r)
@@ -123,17 +146,17 @@ def project2d(y,p,r):
     
     # Reconfigure the array:
     X = zip(*X)
-    y = np.array(X[1])*3600*180/np.pi
-    z = np.array(X[2])*3600*180/np.pi
+    y = -np.array(X[1])*3600*180/np.pi
+    z = -np.array(X[2])*3600*180/np.pi
     
     # Get standard deviation:
-    d = np.sqrt(np.sum((y**2+z**2)/len(y)))
+    d = np.sqrt(np.sum((y**2 + z**2)/len(y)))
     alpha = np.arctan2(d,1);
     print 'Accuracy: ',alpha,' arcseconds'
     
     # Plot the results:
     pylab.figure()
-    pylab.plot(-y,-z,'.')
+    pylab.plot(y,z,'.')
     pylab.axis('equal')
     pylab.xlabel('X (arcseconds)')
     pylab.ylabel('Y (arcseconds)')
@@ -303,11 +326,6 @@ def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='s
 
 
     return new_series
-
-
-
-
-
 
 def optimize_variance(quats,delta_t=0.1):
     """

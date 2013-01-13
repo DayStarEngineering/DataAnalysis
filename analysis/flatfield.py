@@ -222,7 +222,7 @@ def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
         default method is "mean." Image values are used by default, unless "source"
         is set to "dark."
         
-        Timing: For one image, just finding the column values takes:
+        Timing: For one image, **just** finding the column values takes:
           mean     = 0.05 sec
           median   = 0.25 sec
           frobomad = 1.6 sec
@@ -270,6 +270,7 @@ def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
     if bg is None:
         bg = centroid.frobomad(img[:middle])[0]
     
+
     # Apply column averages to image
 
 #    top= img[:middle]*bg[0]/np.tile(topCol, (middle,1))
@@ -279,6 +280,7 @@ def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
 
     img[:middle] = img[:middle]*bg/np.tile(topCol, (middle,1))
     img[middle:] = img[middle:]*bg/np.tile(botCol, (middle,1))
+
 
     
     # return subtracted image
