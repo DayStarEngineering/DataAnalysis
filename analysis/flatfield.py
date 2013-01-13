@@ -222,7 +222,7 @@ def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
         default method is "mean." Image values are used by default, unless "source"
         is set to "dark."
         
-        Timing: For one image, just finding the column values takes:
+        Timing: For one image, **just** finding the column values takes:
           mean     = 0.05 sec
           median   = 0.25 sec
           frobomad = 1.6 sec
@@ -270,7 +270,6 @@ def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
     if bg is None:
         bg = centroid.frobomad(img[:middle])[0]
     
-    # Apply column averages to image 
     img[:middle] *= bg/np.tile(topCol, (middle,1))
     img[middle:] *= bg/np.tile(botCol, (middle,1))
     
@@ -396,9 +395,9 @@ def main():
     Method = "mean"
     
     # Load image
-    fn = "/Users/zachdischner/Desktop/StarTest_9_9_2012/Gray/img_1347267746_089087_00006_00017_0_gray.tif"
-    #fn = "/Users/zachdischner/Desktop/img_1348370245_127071_00175_00000_1.dat"
-    #fn = "/Users/zachdischner/Desktop/img.tif"
+#    fn = "/Users/zachdischner/Desktop/StarTest_9_9_2012/Gray/img_1347267746_089087_00006_00017_0_gray.tif"
+#    fn = "/Users/zachdischner/Desktop/img_1353551010_808501_00000_00039_1.dat"
+    fn = "/Users/zachdischner/Desktop/img.dat"
     img=imgutil.loadimg(fn,load_full=1)
 
     # Print means and standard deviations
@@ -425,7 +424,7 @@ def main():
     print "DR + Image Column  + Wiener mean and standard deviation:  %s    and    %s  " % (np.mean(iwiener),np.std(iwiener))
 
     # Plotting
-    pylab.figure()
+    pylab.figure(num=None, figsize=(13, 7), dpi=80, facecolor='w', edgecolor='k')
     pylab.subplot(2,2,1)
     pylab.imshow(np.multiply(img,4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
     pylab.title('Original Image')
@@ -439,15 +438,25 @@ def main():
     pylab.title('DR and Img Col Using ' + Method)
 
     pylab.subplot(2,2,4)
-    pylab.imshow(np.multiply(iwiener,4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
-    pylab.title('Adding Wiener Filter to ' + Method)
+#    pylab.imshow(np.multiply(iwiener,4), cmap=None, norm=None, aspect=None, interpolation='nearest', vmin=0, vmax=2048, origin='upper')
+#    pylab.title('Adding Wiener Filter to ' + Method)
+#    oldmean=centroid.frobomad(img, axis=0)[0]
+#    newmean=centroid.frobomad(i3, axis=0)[0]
+    oldmean=np.mean(img,axis=0)
+    newmean=np.mean(i3,axis=0)
+    pylab.plot(oldmean)
+
+    pylab.plot(newmean)
+    pylab.legend(['Before Normalization Col RMean','After Normalization Col RMean'])
+    pylab.xlabel('Column')
+    pylab.ylabel('Mean')
 
     imgutil.dispimg(i3,viewfactor=4.)
     pylab.title('DR + IMGnorm')
     imgutil.dispimg(iwiener,viewfactor=4.)
     pylab.title('DR + IMGnorm + Wiener')
 
-    return 0
+    return i3
 
 if __name__ == "__main__":
     import sys

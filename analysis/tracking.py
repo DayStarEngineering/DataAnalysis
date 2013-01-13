@@ -9,6 +9,7 @@ __author__ = 'zachdischner'
 """
 
 import numpy as np
+from numpy import linalg
 import transformations as transform
 import scipy as sp
 from scipy import signal,polyfit,polyval
@@ -19,14 +20,14 @@ import math
 import sys
 import time
 
-def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type='ellip',method='kevin'):
+def FindVariance(quaternions,delta_t=0.1,motion_frequency=3,plot=False,filt_type='ellip',method='kevin',attitude='diff'):
     """
         Purpose: Find the variance of a set of quaternions. Low Frequency components are assumed to be invalid
                  and will be discarded. Intended for analyzing high-frequency variations in a set of rotation
                  quaternions, specifically for the DayStar platform.
         Inputs: quaternions - List of quaternion arrays, formatted 'SXYZ' I think.
                 delta_t - (optional) Time between quaternion observations [s]. Assumed (and must be) uniform for all frames
-                motion_frequency - (optional) The frequency of motion that we wish to filter out.
+                motion_frequency - (optional) The Frequency we want to filter below
                 plot - (optional) Set to generate plots of the fourrier filterig as we do it, to see how the signal
                        changes
                 variable -(optional), the name of the signal being filtered. Used for plot labeling.
@@ -45,14 +46,57 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type
     for q in quaternions:
         # Get rotation from epoch
         qtmp=transform.quaternion_multiply(qtmp,q)      # Multiply each quaternion by the sum of all previous quaternions
-        quats.append(np.array(np.hstack([qtmp[3],qtmp[0:3]])))
+        if method=='kevin':
+            quats.append(np.array(np.hstack([qtmp[3],qtmp[0:3]])))
+        else:
+            quats.append(np.array(np.hstack([qtmp[0:3],qtmp[3]])))
 
-    [y,p,r]=quat2ypr(quats,method=method)
+    if attitude == 'azelbore':
+        AZ = []
+        EL = []
+        PHI = []
+        z = np.array([0, 0, 1])
+        x = np.array([1, 0, 0])
+        for q in quats:
+            # Find rotation matrix from quaternion:
+            M = quat2dcm(q)
+            
+            # Rotate the x axis
+            zhat = np.dot(M,z)
+            
+            # Rotate the y axis
+            xhat = np.dot(M,x)
+            
+            # Find azimuth and elevation:
+            az = np.arctan2(zhat[0],zhat[2])
+            el = np.arcsin(zhat[1])
+            
+            # Find unrotate boresite y-axis:
+            xhatp = np.array([np.cos(az), 0, -np.sin(az)])
+            
+            # Find the boresight rotation:
+            phi = np.arccos(np.dot(xhat,xhatp))
+            
+            # Store data
+            AZ.append(az)
+            EL.append(el)
+            PHI.append(phi)
+            
+        y_filt = high_pass(AZ,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Yaw',filt_type=filt_type,color='blue')     #radians
+        p_filt = high_pass(EL,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Pitch',filt_type=filt_type,color='purple')     #radians
+        r_filt = high_pass(PHI,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='Roll',filt_type=filt_type,color='green')     #radians
+            
+    else:
+        [y,p,r]=quat2ypr(quats,method=method)
+    
+        y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw',filt_type=filt_type,color='blue')     #radians
+        p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch',filt_type=filt_type,color='purple')     #radians
+        r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll',filt_type=filt_type,color='green')     #radians
 
-    y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='yaw',filt_type=filt_type)     #radians
-    p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='pitch',filt_type=filt_type)     #radians
-    r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,variable='roll',filt_type=filt_type)     #radians
 
+    # project filtered results on 2d plane:
+    project2d(y_filt,p_filt,r_filt)
+    
 #    obs_std = np.sqrt(np.std(r_filt)**2 + np.std(p_filt)**2 + np.std(y_filt)**2)    #Standard deviation
     y_std = 3600*(np.std(y_filt)*180/math.pi)
     p_std = 3600*(np.std(p_filt)*180/math.pi)
@@ -63,10 +107,39 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=2,plot=False,filt_type
     r_var = r_std**2
 #    var = 3600*(obs_std*180/math.pi)**2         # arcseconds
 
-    return y_var,p_var,r_var
+    return y_var,p_var,r_var,y_filt,p_filt,r_filt
 
 
-def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='signal'):
+def project2d(y,p,r):
+
+    # Convert y,p,r to transformation matrix:
+    T = map(euler3212dcm,y,p,r)
+    
+    # Rotate unit x-vector
+    z = np.array([1,0,0])
+    X = []
+    for t in T:
+        X.append(np.dot(t,z))
+    
+    # Reconfigure the array:
+    X = zip(*X)
+    y = np.array(X[1])*3600*180/np.pi
+    z = np.array(X[2])*3600*180/np.pi
+    
+    # Get standard deviation:
+    d = np.sqrt(np.sum((y**2+z**2)/len(y)))
+    alpha = np.arctan2(d,1);
+    print 'Accuracy: ',alpha,' arcseconds'
+    
+    # Plot the results:
+    pylab.figure()
+    pylab.plot(-y,-z,'.')
+    pylab.axis('equal')
+    pylab.xlabel('X (arcseconds)')
+    pylab.ylabel('Y (arcseconds)')
+    pylab.grid(True)
+    
+def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='signal',color='blue'):
     """
         Purpose: High-pass filter a single array series using fourrier transforms.
 
@@ -97,10 +170,15 @@ def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='s
 
     ## Construct Frequency Filter
     #---------------------------------------------------------
-    Wp = (ns*delta)/cutoff_freq     # Cutoff frequency, normalized to 1
+    Nyquist_freq  = 1/delta/2   # Nyquist frequency. Highest freq we can detect
+    Wp = cutoff/Nyquist_freq   # Proportion of Full spectrum to filter
+    if Wp > 1:
+        print "Hey douche, your cutoff frequency is higher than your Nyquist frequency."
+        print "You can't filter this way"
+#    Wp = cutoff_freq/(ns/math.pi) #(ns*delta)/cutoff_freq     # Cutoff frequency, normalized to 1
     Ws = Wp-0.1*Wp                  # Stop frequency
-    Rp = 0.1                        # passband maximum loss (gpass)
-    As = 60                         # stoppand min attenuation (gstop)
+    Rp = 0.01                       # passband maximum loss (gpass)
+    As = 90                         # stoppand min attenuation (gstop)
 
     if filt_type.lower() == 'ellip':
         try:
@@ -162,27 +240,67 @@ def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='s
         pylab.figure(num=None, figsize=(13, 7), dpi=80, facecolor='w', edgecolor='k')
         # Signal
         pylab.subplot(2,2,1)
-#        pylab.plot(np.arange(0,ns*delta,delta),series)
-        pylab.plot(series*180/math.pi*3600)
+        pylab.plot(np.arange(0,len(series)*delta,delta)[0:len(series)],series*180/math.pi*3600,color=color)
+#        pylab.plot(series*180/math.pi*3600)
         pylab.xlabel('Time')
         pylab.ylabel(variable + " [arcseconds]")
 
         pylab.subplot(2,2,3)
-        pylab.plot(new_series*180/math.pi*3600)
-#        pylab.plot(np.arange(0,ns*delta,delta),new_series)
+#        pylab.plot(new_series*180/math.pi*3600)
+        pylab.plot(np.arange(0,len(new_series)*delta,delta)[0:len(new_series)],new_series*180/math.pi*3600,color=color)
         pylab.xlabel('Time')
         pylab.ylabel('Filtered ' + variable + " [arcseconds]")
 
         #fourrier signal
         pylab.subplot(2,2,2)
-        pylab.plot(np.fft.rfft(series))
+#        pylab.plot(np.fft.rfft(series))
+        power_axis = np.fft.fftfreq(len(series),0.1)
+        power_axis=power_axis[power_axis>0]
+        power_axis=np.append(power_axis,1/delta/2)
+
+#        power_axis=sp.fftpack.rfftfreq(len(series),0.1)
+
+
+        pylab.plot(power_axis, power_spectrum(series,sampling_frequency=1/delta),color=color)
         pylab.xlabel('Freq (Hz)')
-        pylab.ylabel('Original Fourier Spectrum')
+        pylab.ylabel('Original Power (log10 Scale)')
 
         pylab.subplot(2,2,4)
-        pylab.plot(np.fft.rfft(new_series))
+#        pylab.plot(power_axis,np.fft.rfft(new_series))
+#        pylab.plot(np.fft.rfft(new_series))
+        pylab.plot(power_axis,power_spectrum(new_series,sampling_frequency=1/delta),color=color)
         pylab.xlabel('Freq (Hz)')
-        pylab.ylabel('Filtered Fourier Spectrum')
+        pylab.ylabel('Filtered Power (log10 Scale)')
+
+
+        # Motion and Correlated Standard Deviation
+        moving_width = 16   # Do even numbers
+        stdseries=np.zeros(len(series))
+        for ii in np.arange(moving_width/2,len(series)-moving_width/2):
+            stdseries[ii]=np.std(new_series[ii-moving_width/2:ii+moving_width/2])
+
+        pylab.figure(num=None, figsize=(13, 7), dpi=80, facecolor='w', edgecolor='k')
+        pylab.title('Gondola Motion and Corresponding Signal Standard Deviation')
+        pylab.subplot(2,1,1)
+        pylab.grid()
+        pylab.plot(np.arange(0,len(series)*delta,delta)[0:len(series)],series*180/math.pi*3600,color=color)
+#        pylab.plot(np.arange(0,len(stdseries)*delta,delta)[0:len(stdseries)],series*180/math.pi*3600 + 10*stdseries*180/math.pi*3600,color='red')
+#        pylab.plot(np.arange(0,len(stdseries)*delta,delta)[0:len(stdseries)],series*180/math.pi*3600-10*stdseries*180/math.pi*3600,color='red')
+        pylab.xlabel('Time')
+        pylab.ylabel(variable + " [arcseconds]")
+
+        pylab.subplot(2,1,2)
+        pylab.grid()
+        pylab.plot(np.arange(0,len(new_series)*delta,delta)[0:len(new_series)],new_series*180/math.pi*3600,color=color)
+
+        #3 Standard Deviation Envelope
+        pylab.plot(np.arange(0,len(stdseries)*delta,delta)[0:len(stdseries)],3*stdseries*180/math.pi*3600,color='red',linewidth=2)
+        pylab.plot(np.arange(0,len(stdseries)*delta,delta)[0:len(stdseries)],-3*stdseries*180/math.pi*3600,color='red',linewidth=2)
+        pylab.xlabel('Time')
+        pylab.ylabel(variable + " Moving STD [arcseconds]")
+        pylab.legend(['High Frequency Motion','+3 Sigma','-3 Sigma'])
+
+
 
     return new_series
 
@@ -191,7 +309,7 @@ def high_pass(series,cutoff=100,delta=1,plot=False,filt_type='ellip',variable='s
 
 
 
-def optimize_variance(quats,delta_t=0.01):
+def optimize_variance(quats,delta_t=0.1):
     """
     Purpose: Very basic attempt to find best motion frequency to get the best variance for a single series observations
     """
@@ -200,12 +318,12 @@ def optimize_variance(quats,delta_t=0.01):
     cutoff_freq=ns/2
     cutoff2=cutoff_freq/(ns*delta_t)
 
-    motion_freq=np.arange(1.2,4,0.01)
+    motion_freq=np.arange(0,5,0.1)
     yv=np.zeros(len(motion_freq))
     pv=np.zeros(len(motion_freq))
     rv=np.zeros(len(motion_freq))
     for ii in np.arange(0,len(motion_freq),1):
-        yv[ii],pv[ii],rv[ii]=FindVariance(quats,motion_frequency=motion_freq[ii],delta_t=0.01)
+        yv[ii],pv[ii],rv[ii],t,tt,ttt=FindVariance(quats,motion_frequency=motion_freq[ii],delta_t=0.1)
 
     pylab.figure()
     pylab.plot(motion_freq,yv)
@@ -265,7 +383,7 @@ def sample_quats():
     tmp=np.loadtxt(open("./analysis/quats.csv","rb"),delimiter=",",skiprows=0)
     quats=[]
     for ii in range(tmp.size/4-1):
-        quats.append([tmp[3][ii],tmp[1][ii],tmp[2][ii],tmp[0][ii]])
+        quats.append([tmp[3][ii],tmp[2][ii],tmp[1][ii],tmp[0][ii]])
     return quats
 
 
@@ -277,6 +395,7 @@ def noisy_sin():
         Outputs: signal-a noisy, overlaid sin computation array
     """
     xs=np.arange(1,100,.05)     #generate Xs (0.00,0.01,0.02,0.03,...,100.0)
+#    xs=np.ones(100)*10
     signal=np.sin(xs)
     signal2=np.sin(xs*.2)
     noise= (np.random.random_sample((len(xs))))
@@ -316,6 +435,17 @@ def quat2dcm(q):
     return np.array([[q[0]**2+q[1]**2-q[2]**2-q[3]**2, 2*(q[1]*q[2]+q[0]*q[3]), 2*(q[1]*q[3]-q[0]*q[2])],
                     [2*(q[1]*q[2]-q[0]*q[3]), q[0]**2-q[1]**2+q[2]**2-q[3]**2, 2*(q[2]*q[3]+q[0]*q[1])],
                     [2*(q[1]*q[3]+q[0]*q[2]), 2*(q[2]*q[3]-q[0]*q[1]), q[0]**2-q[1]**2-q[2]**2+q[3]**2]]);
+                    
+def euler3212dcm(y,p,r):
+    cy = np.cos(y)
+    cp = np.cos(p)
+    cr = np.cos(r)
+    sy = np.sin(y)
+    sp = np.sin(p)
+    sr = np.sin(r)
+    return np.array([[           cy*cp,            sy*cp,   -sp],
+                     [cy*sp*sr - sy*cr, sy*sp*sr + cy*cr, cp*sr],
+                     [cy*sp*cr + sy*sr, sy*sp*cr - cy*sr, cp*cr]]) 
 
 def power_spectrum(series,sampling_frequency=1):
     """
@@ -329,9 +459,9 @@ def power_spectrum(series,sampling_frequency=1):
 
     freq=np.fft.rfft(series)
     power=freq*np.conj(freq)
-    power=power[range(len(power)/2)]
-    power /= abs(power).max()        #Normalize to 1
-    return power
+#    power=power[range(len(power)/2)]
+#    power /= abs(power).max()        #Normalize to 1
+    return np.log10(power)
 
 
 

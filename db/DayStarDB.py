@@ -360,7 +360,9 @@ class DatabaseConnect:
             con = self.MySQLconnect(self.env)
             cur = con.cursor()
             cur.execute(query)
+            con.commit()
             cur.close()
+            con.commit()        # Just for good measure
             con.close()
         except:
             print "Error in either SQL or environment setup"

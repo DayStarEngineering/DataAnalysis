@@ -25,8 +25,6 @@ def subtract_uint16(a, b):
     else:
         return (a-b)
 
-
-
 # ----------------------- Background Subtraction -----------------------------
 def bgsub(imgArray):
     '''
