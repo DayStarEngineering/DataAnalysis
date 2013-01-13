@@ -231,7 +231,7 @@ def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
     """
     
     # Deepcopy
-    img = np.float64( cp.deepcopy(imgArray) )
+    img = np.int16( cp.deepcopy(imgArray) )
 
     # Get size of the image
     [ysize, xsize] = img.shape
@@ -276,8 +276,8 @@ def ImgNormalize(imgArray, bg=None, Method="mean", source="image"):
 #    bottom=img[middle:]* bg[1]/np.tile(botCol, (middle,1))
 #    img=np.append(top,bottom,0)
 
-    img[:middle] *= bg[0]/np.tile(topCol, (middle,1))
-    img[middle:] *= bg[1]/np.tile(botCol, (middle,1))
+    img[:middle] = img[:middle]*bg[0]/np.tile(topCol, (middle,1))
+    img[middle:] = img[middle:]*bg[1]/np.tile(botCol, (middle,1))
 
     
     # return subtracted image
