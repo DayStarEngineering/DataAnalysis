@@ -131,8 +131,9 @@ print 'Loading filenames from database.'
 db = database.Connect()
 
 # Nighttime:
-fnames = db.select('select raw_fn from rawdata where burst_num = 172 limit 501').raw_fn.tolist()
-
+data = db.select('select id,raw_fn from rawdata where burst_num = 172 limit 501')
+fnames = data.raw_fn.tolist()
+id = data.id.tolist()
 # Daytime:
 #fnames = db.select('select raw_fn from rawdata where burst_num = 15 limit 501').raw_fn.tolist()
 #fnames = db.find('raw_fn','burst_num = 175 limit 5').raw_fn.tolist()
@@ -144,6 +145,10 @@ tic = time.clock()
 
 # Get centroids from each file:
 centroids,numstars = getCentroids(fnames)
+
+# update centroid list into the database
+for count,cent in enumerate(centroids):
+    db.insert_centroids(cent,id[count])
     
 print 'Mean number of stars found: ', np.mean(numstars)
 
@@ -155,6 +160,10 @@ centroids = pickle.load( open( pname, "rb" ) )
 
 # Get quaternions from our centroids:
 quats,matched_centroids,nummatchstars = getQuaternions(centroids)
+
+# update quaternions into the database
+for count,q in enumerate(quats):
+    db.insert_quat(q,id[count])
 
 
 print 'Find yaw, pitch, and roll rms.'
