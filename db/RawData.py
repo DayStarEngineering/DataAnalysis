@@ -47,8 +47,16 @@ class Connect(DayStarDB.DatabaseConnect):
     def initialize_raw_db(self):
         self.create_database('DayStar')
 
-    def initialize_raw_table(self):
+    def initialize_raw_table(self,seed=False):
         self.create_table('rawdata')
+        if seed:
+            self.seed_raw_table()
+        print "Altering Table"
+        self.execute_statement("ALTER TABLE rawdata ADD norm_fn VARCHAR(100) DEFAULT 0 AFTER raw_fn")
+        self.execute_statement("ALTER TABLE rawdata ADD centroid_list VARCHAR(100)")
+        self.execute_statement("ALTER TABLE rawdata ADD quaternions VARCHAR(20)")
+
+
 
     def seed_raw_table(self):
         subprocess.call(["./db/FillRawData.sh"], shell=True)
