@@ -88,9 +88,7 @@ class Connect(DayStarDB.DatabaseConnect):
         quatsDB=self.find('quaternions',where).quaternions
         quats=[]
         for q in quatsDB:
-            if q is None:
-                print "The quaternion does not exist in the database."
-            else:
+            if q is not None:
                 quats.append(eval(q))
 
         return quats
@@ -115,9 +113,7 @@ class Connect(DayStarDB.DatabaseConnect):
         centroidsDB=self.find('centroid_list',where).centroid_list
         centroids=[]
         for cent in centroidsDB:
-            if cent is None:
-                print "The centroid list does not exist in the database."
-            else:
+            if cent is not None:
                 centroids.append(eval(cent))
 
         return centroids
@@ -141,9 +137,7 @@ class Connect(DayStarDB.DatabaseConnect):
         centroidsDB=self.find('matched_centroid_list',where).matched_centroid_list
         centroids=[]
         for cent in centroidsDB:
-            if cent is None:
-                print "The matched centroid list does not exist in the database."
-            else:
+            if cent is not None:
                 centroids.append(eval(cent))
 
         return centroids
