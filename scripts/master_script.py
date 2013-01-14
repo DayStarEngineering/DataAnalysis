@@ -125,9 +125,9 @@ pl.close('all')
 
 # Which plots do you want brah?
 plot = True
-burst_num = 172
-load_centroids = True   # Try to load from database
-load_quats = True       # Try to load from database
+burst_num = 166
+load_centroids = False   # Try to load from database. If FALSE, all database data will be overwritten.
+load_quats = False       # Try to load from database
 compute_centroids = not load_centroids
 compute_quats = not load_quats
 
@@ -138,7 +138,7 @@ db = database.Connect()
 
 # Nighttime:
 
-data = db.select('select id,raw_fn from rawdata where burst_num = %s limit 501' % burst_num)
+data = db.select('select id,raw_fn from rawdata where burst_num = %s limit 5000' % burst_num)
 fnames = data.raw_fn.tolist()
 id = data.id.tolist()
 # Daytime:
@@ -152,14 +152,18 @@ tic = time.clock()
 
 # Get centroids from each file:
 if load_centroids:
+    print "Trying to load Centroids from Database"
     centroids = db.find_centroids("burst_num = %s" % burst_num)
     numstars = db.find_num_centroids("burst_num = %s" % burst_num)
     if centroids ==[]:
+        print "Database does not contain centroid data"
         compute_centroids=True
 
 if compute_centroids:
+    print "Computing centroids for each image"
     centroids,numstars = getCentroids(fnames)
     # update centroid list into the database
+    print "Inserting centroid lists and number of stars into the database"
     for count,cent in enumerate(centroids):
         db.insert_centroids(cent,id[count])
         db.insert_num_centroids(numstars[count],id[count])
@@ -178,20 +182,24 @@ centroids = pickle.load( open( pname, "rb" ) )
 
 # Get quaternions from our centroids:
 if load_quats:
+    print "Trying to load Quaternions from Database"
     quats = db.find_quats("burst_num = %s" % burst_num)
     nummatchstars = db.find_num_matched_centroids("burst_num = %s" % burst_num)
     matched_centroids=db.find_matched_centroids("burst_num= %s" % burst_num)
     if quats ==[]:
+        print "Quaternion data not contained in database"
         compute_quats=True
 
 
 if compute_quats:
+    print "Computing quaternions for each image"
     quats,matched_centroids,nummatchstars = getQuaternions(centroids)
     # update quaternions into the database
+    print"Inserting quaterninos, number of matched stars, and matched stars into the database"
     for count,q in enumerate(quats):
         db.insert_quat(q,id[count])
-        db.insert_num_matched_centroids(nummatchstars,id[count])
-        db.insert_matched_centroids(matched_centroids[count],id[count])
+        db.insert_num_matched_centroids(nummatchstars[count],id[count])
+        db.insert_matched_centroids([matched_centroids[count]],id[count])
 
 
 
