@@ -12,14 +12,14 @@ def main():
 
     print 'Loading filenames from database.'
     db = database.Connect()
-    data = db.select("select id,raw_fn from rawdata where(norm_fn='0')")
+    data = db.select("select id,raw_fn from rawdata where(norm_fn='0' AND burst_num=172)")
     fnames=data.raw_fn.tolist()
     ids=data.id.tolist()
 
     n = len(fnames)
 
     for count,fname in enumerate(fnames):
-        path=os.environ.get('RawBaseLoc')
+        path=os.environ.get('RawBaseLoc') + '/norm/'
         norm_fn= str.replace(fname,'.dat','_norm.tif')
 
         if not os.path.isfile(path+norm_fn):
