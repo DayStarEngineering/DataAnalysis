@@ -144,6 +144,10 @@ tic = time.clock()
 
 # Get centroids from each file:
 centroids,numstars = getCentroids(fnames)
+
+# update centroid list into the database
+for count,cent in enumerate(centroids):
+    db.insert_centroids(cent,id[count])
     
 print 'Mean number of stars found: ', np.mean(numstars)
 
@@ -155,6 +159,10 @@ centroids = pickle.load( open( pname, "rb" ) )
 
 # Get quaternions from our centroids:
 quats,matched_centroids,nummatchstars = getQuaternions(centroids)
+
+# update quaternions into the database
+for count,q in enumerate(quats):
+    db.insert_quat(q,id[count])
 
 
 print 'Find yaw, pitch, and roll rms.'
