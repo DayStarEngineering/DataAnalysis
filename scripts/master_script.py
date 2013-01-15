@@ -131,7 +131,7 @@ print 'Loading filenames from database.'
 db = database.Connect()
 
 # Nighttime:
-fnames = db.select('select raw_fn from rawdata where burst_num = 172 limit 501').raw_fn.tolist()
+fnames = db.select('select raw_fn from rawdata where burst_num = 185 limit 501').raw_fn.tolist()
 
 # Daytime:
 #fnames = db.select('select raw_fn from rawdata where burst_num = 15 limit 501').raw_fn.tolist()

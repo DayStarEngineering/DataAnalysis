@@ -14,13 +14,14 @@ import transformations as transform
 import scipy as sp
 from scipy import signal,polyfit,polyval
 from scipy.signal import filter_design as fd
+from numpy.linalg import eig
 import matplotlib
 import pylab as pylab
 import math
 import sys
 import time
 
-def FindVariance(quaternions,delta_t=0.1,motion_frequency=3,plot=False,filt_type='ellip',method='kevin',attitude='diff'):
+def FindVariance(quaternions,delta_t=0.1,motion_frequency=3,plot=False,filt_type='ellip',method='kevin',attitude='azelbore'):
     '''
     Purpose: Find the variance of a set of quaternions. Low Frequency components 
     are assumed to be invalid and will be discarded. Intended for analyzing
@@ -68,20 +69,20 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=3,plot=False,filt_type
         y = np.array([0, 1, 0])
         z = np.array([0, 0, 1])
         
-        AZ = []
-        EL = []
-        PHI = []
+        Y = []
+        P = []
+        R = []
         
         for q in quats:
             # Find rotation matrix from quaternion:
             M = quat2dcm(q)
             
             # Rotate the x and y axes of the 3D frame
-            xhat = np.dot(M,z)
-            yhat = np.dot(M,x)
+            xhat = np.dot(M,x)
+            yhat = np.dot(M,y)
             
             # Find azimuth and elevation:
-            az = np.arctan2(xhat[0], xhat[1])
+            az = np.arctan2(xhat[1], xhat[0])
             el = np.arcsin(xhat[2])
             
             # Find unrotated boresite y-axis:
@@ -89,33 +90,37 @@ def FindVariance(quaternions,delta_t=0.1,motion_frequency=3,plot=False,filt_type
             
             # Find the boresight rotation:
             phi = np.arccos(np.dot(yhat,yhatp))
+            if yhat[2] < 0:
+                phi = -phi
             
             # Store data
-            AZ.append(az)
-            EL.append(el)
-            PHI.append(phi)
+            Y.append(az)
+            P.append(-el)
+            R.append(phi)
             
-        y_filt = high_pass(AZ,  cutoff=motion_frequency, delta=delta_t, plot=plot,
+        y_filt = high_pass(Y,  cutoff=motion_frequency, delta=delta_t, plot=plot,
                            variable='Yaw', filt_type=filt_type, color='blue') #radians
-        p_filt = high_pass(EL,  cutoff=motion_frequency, delta=delta_t, plot=plot,
+        p_filt = high_pass(P,  cutoff=motion_frequency, delta=delta_t, plot=plot,
                            variable='Pitch', filt_type=filt_type, color='purple') #radians
-        r_filt = high_pass(PHI, cutoff=motion_frequency, delta=delta_t, plot=plot,
+        r_filt = high_pass(R, cutoff=motion_frequency, delta=delta_t, plot=plot,
                            variable='Roll', filt_type=filt_type, color='green') #radians
             
     else:
-        [y,p,r]=quat2ypr(quats,method=method)
+        [Y,P,R]=quat2ypr(quats,method=method)
     
-        y_filt = high_pass(y,cutoff=motion_frequency,delta=delta_t,plot=plot,
+        y_filt = high_pass(Y,cutoff=motion_frequency,delta=delta_t,plot=plot,
                            variable='yaw',filt_type=filt_type,color='blue') #radians
-        p_filt = high_pass(p,cutoff=motion_frequency,delta=delta_t,plot=plot,
+        p_filt = high_pass(P,cutoff=motion_frequency,delta=delta_t,plot=plot,
                            variable='pitch',filt_type=filt_type,color='purple') #radians
-        r_filt = high_pass(r,cutoff=motion_frequency,delta=delta_t,plot=plot,
+        r_filt = high_pass(R,cutoff=motion_frequency,delta=delta_t,plot=plot,
                            variable='roll',filt_type=filt_type,color='green') #radians
 
 
     # Project filtered results on 2d plane:
+    #project2d(y_filt,p_filt,r_filt)
+    project2dquat(quats)
     project2d(y_filt,p_filt,r_filt)
-    
+        
     #Standard deviation
     #obs_std = np.sqrt(np.std(r_filt)**2 + np.std(p_filt)**2 + np.std(y_filt)**2)    
     y_std = 3600*(np.std(y_filt)*180/math.pi)
@@ -154,9 +159,51 @@ def project2d(y,p,r):
     alpha = np.arctan2(d,1);
     print 'Accuracy: ',alpha,' arcseconds'
     
+    # Find covariance matrix:
+    C = np.vstack([y,z])
+    P = np.cov(C)
+    
+    # Rotate covariance along principle axes:
+    vals,vec = eig(P)
+    
+    print 'Eig vals: ',np.sqrt(vals)
+    
+    
     # Plot the results:
     pylab.figure()
-    pylab.plot(y,z,'.')
+    pylab.plot(-y,z,'.')
+    pylab.axis('equal')
+    pylab.xlabel('X (arcseconds)')
+    pylab.ylabel('Y (arcseconds)')
+    pylab.grid(True)
+    
+def project2dquat(q):
+    '''
+    Project yaw, ptich and roll values back into the 2D image frame.
+    '''
+
+    # Convert y,p,r to transformation matrix:
+    T = map(quat2dcm,q)
+    
+    # Rotate unit x-vector
+    z = np.array([1,0,0])
+    X = []
+    for t in T:
+        X.append(np.dot(t,z))
+    
+    # Reconfigure the array:
+    X = zip(*X)
+    y = -np.array(X[1])*3600*180/np.pi
+    z = -np.array(X[2])*3600*180/np.pi
+    
+    # Get standard deviation:
+    d = np.sqrt(np.sum((y**2 + z**2)/len(y)))
+    alpha = np.arctan2(d,1);
+    print 'Accuracy: ',alpha,' arcseconds'
+    
+    # Plot the results:
+    pylab.figure()
+    pylab.plot(-y,z,'.')
     pylab.axis('equal')
     pylab.xlabel('X (arcseconds)')
     pylab.ylabel('Y (arcseconds)')

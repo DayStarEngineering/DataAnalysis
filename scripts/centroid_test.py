@@ -24,7 +24,7 @@ import time
 ###################################################################################
 # Load the image:
 db = database.Connect()
-fnames = db.select('select raw_fn from rawdata where burst_num = 15 limit 2').raw_fn.tolist()
+fnames = db.select('select raw_fn from rawdata where burst_num = 185 limit 2').raw_fn.tolist()
 fnames.sort()
 fname = fnames[0]
 print 'Opening: ' + fname
