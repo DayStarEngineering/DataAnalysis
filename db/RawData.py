@@ -53,8 +53,8 @@ class Connect(DayStarDB.DatabaseConnect):
             self.seed_raw_table()
         print "Altering Table"
         self.execute_statement("ALTER TABLE rawdata ADD norm_fn VARCHAR(100) DEFAULT 0 AFTER raw_fn")
-        self.execute_statement("ALTER TABLE rawdata ADD centroid_list VARCHAR(2000)")
-        self.execute_statement("ALTER TABLE rawdata ADD matched_centroid_list VARCHAR(2000)")
+        self.execute_statement("ALTER TABLE rawdata ADD centroid_list VARCHAR(6000)")
+        self.execute_statement("ALTER TABLE rawdata ADD matched_centroid_list VARCHAR(4000)")
         self.execute_statement("ALTER TABLE rawdata ADD quaternions VARCHAR(200)")
         self.execute_statement("ALTER TABLE rawdata ADD num_centroids INT(3)")
         self.execute_statement("ALTER TABLE rawdata ADD num_matched_centroids INT(3)")
