@@ -12,7 +12,7 @@ def main():
 
     print 'Loading filenames from database.'
     db = database.Connect()
-    data = db.select("select id,raw_fn from rawdata where(norm_fn='0') limit 5000")
+    data = db.select("select id,raw_fn from rawdata where(norm_fn='0') limit 2000")
     fnames=data.raw_fn.tolist()
     ids=data.id.tolist()
 

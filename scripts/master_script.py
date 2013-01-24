@@ -35,7 +35,7 @@ import copy as cp
 # Functions
 ###################################################################################
 def getCentroids(fnames):
-    '''
+    '''True
     From a list of filenames, load the filenames, clean up the images, find stars
     in the images, and return a list of centroids and the number of stars found in
     each image.
@@ -51,8 +51,9 @@ def getCentroids(fnames):
         # Load the image:
         image = imgutil.loadimg(fname,from_database=True)
         
-        # Clean up image:
-        image = flatfield.ImgNormalize(image, Method="mean")
+        # Clean up image, if it hasn't been already:
+        if not fname.find('_norm.tif'):
+            image = flatfield.ImgNormalize(image, Method="mean")
         
         # Find stars in image:
         #centers = centroid.findstars(image)
@@ -125,9 +126,9 @@ pl.close('all')
 
 # Which plots do you want brah?
 plot = True
-burst_num = 166
-load_centroids = False   # Try to load from database. If FALSE, all database data will be overwritten.
-load_quats = False       # Try to load from database
+burst_num = 172
+load_centroids = True   # Try to load from database. If FALSE, all database data will be overwritten.
+load_quats = True       # Try to load from database
 compute_centroids = not load_centroids
 compute_quats = not load_quats
 
@@ -138,8 +139,14 @@ db = database.Connect()
 
 # Nighttime:
 
-data = db.select('select id,raw_fn from rawdata where burst_num = %s limit 5000' % burst_num)
-fnames = data.raw_fn.tolist()
+data = db.select('select id,raw_fn,norm_fn from rawdata where burst_num = %s limit 1000' % burst_num)
+raw = data.raw_fn.tolist()
+norm=data.norm_fn.tolist()
+fnames=[]
+for count,n in enumerate(norm):
+    if n=='0':
+        fnames.append(raw[count])
+
 id = data.id.tolist()
 # Daytime:
 #fnames = db.select('select raw_fn from rawdata where burst_num = 15 limit 501').raw_fn.tolist()
