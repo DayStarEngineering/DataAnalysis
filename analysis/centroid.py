@@ -290,7 +290,7 @@ def imgcentroid(image, centers, method="iwc"):
     
     for star in centers:
         (centroid, width) = star           
-        
+            
         # Use the first centroid to test      
         (frame, (xframe,yframe), frame_centroid) = sm.windowsub(image, centroid, width, neg=True, scale=1)
                                 
