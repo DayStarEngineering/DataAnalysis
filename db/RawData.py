@@ -89,6 +89,8 @@ class Connect(DayStarDB.DatabaseConnect):
         quats=[]
         for q in quatsDB:
             if q is not None:
+                q=q.replace('[  ','[')
+                q=q.replace('  ',',')
                 quats.append(eval(q))
 
         return quats
