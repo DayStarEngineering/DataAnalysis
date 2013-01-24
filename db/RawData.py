@@ -53,8 +53,11 @@ class Connect(DayStarDB.DatabaseConnect):
             self.seed_raw_table()
         print "Altering Table"
         self.execute_statement("ALTER TABLE rawdata ADD norm_fn VARCHAR(100) DEFAULT 0 AFTER raw_fn")
-        self.execute_statement("ALTER TABLE rawdata ADD centroid_list VARCHAR(2000)")
+        self.execute_statement("ALTER TABLE rawdata ADD centroid_list VARCHAR(6000)")
+        self.execute_statement("ALTER TABLE rawdata ADD matched_centroid_list VARCHAR(4000)")
         self.execute_statement("ALTER TABLE rawdata ADD quaternions VARCHAR(200)")
+        self.execute_statement("ALTER TABLE rawdata ADD num_centroids INT(3)")
+        self.execute_statement("ALTER TABLE rawdata ADD num_matched_centroids INT(3)")
 
 
 
@@ -85,9 +88,9 @@ class Connect(DayStarDB.DatabaseConnect):
         quatsDB=self.find('quaternions',where).quaternions
         quats=[]
         for q in quatsDB:
-            if q is None:
-                print "The quaternion does not exist in the database."
-            else:
+            if q is not None:
+                q=q.replace('[  ','[')
+                q=q.replace('  ',',')
                 quats.append(eval(q))
 
         return quats
@@ -112,9 +115,39 @@ class Connect(DayStarDB.DatabaseConnect):
         centroidsDB=self.find('centroid_list',where).centroid_list
         centroids=[]
         for cent in centroidsDB:
-            if cent is None:
-                print "The centroid list does not exist in the database."
-            else:
+            if cent is not None:
                 centroids.append(eval(cent))
 
         return centroids
+
+
+    def insert_num_centroids(self,num_cent,id):
+        self.update('num_centroids','id=%s' % id,'"%s"' % num_cent)
+
+    def find_num_centroids(self,where):
+        centroids=self.find('num_centroids',where).num_centroids.tolist()
+        return centroids
+
+
+        #         Insert centroid list. Same as above.
+    #       *centroid_list is a list    [(x,y),(x,y)...]
+    def insert_matched_centroids(self,matched_centroid_list,id):
+        self.update('matched_centroid_list','id=%s' % id,'"%s"' % matched_centroid_list)
+
+
+    def find_matched_centroids(self,where):
+        centroidsDB=self.find('matched_centroid_list',where).matched_centroid_list
+        centroids=[]
+        for cent in centroidsDB:
+            if cent is not None:
+                centroids.append(eval(cent))
+
+        return centroids
+
+
+    def insert_num_matched_centroids(self,num_matched_cent,id):
+        self.update('num_matched_centroids','id=%s' % id,'"%s"' % num_matched_cent)
+
+    def find_num_matched_centroids(self,where):
+        num=self.find('num_matched_centroids',where).num_matched_centroids.tolist()
+        return num

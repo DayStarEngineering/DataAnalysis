@@ -35,7 +35,7 @@ import copy as cp
 # Functions
 ###################################################################################
 def getCentroids(fnames):
-    '''
+    '''True
     From a list of filenames, load the filenames, clean up the images, find stars
     in the images, and return a list of centroids and the number of stars found in
     each image.
@@ -51,8 +51,9 @@ def getCentroids(fnames):
         # Load the image:
         image = imgutil.loadimg(fname,from_database=True)
         
-        # Clean up image:
-        image = flatfield.ImgNormalize(image, Method="mean")
+        # Clean up image, if it hasn't been already:
+        if not fname.find('_norm.tif'):
+            image = flatfield.ImgNormalize(image, Method="mean")
         
         # Find stars in image:
         #centers = centroid.findstars(image)
@@ -125,13 +126,28 @@ pl.close('all')
 
 # Which plots do you want brah?
 plot = True
+burst_num = 172
+load_centroids = True   # Try to load from database. If FALSE, all database data will be overwritten.
+load_quats = True       # Try to load from database
+compute_centroids = not load_centroids
+compute_quats = not load_quats
+
 
 # Get desired filenames from database:
 print 'Loading filenames from database.'
 db = database.Connect()
 
 # Nighttime:
-fnames = db.select('select raw_fn from rawdata where burst_num = 185 limit 501').raw_fn.tolist()
+
+data = db.select('select id,raw_fn,norm_fn from rawdata where burst_num = %s limit 1000' % burst_num)
+raw = data.raw_fn.tolist()
+norm=data.norm_fn.tolist()
+fnames=[]
+for count,n in enumerate(norm):
+    if n=='0':
+        fnames.append(raw[count])
+
+id = data.id.tolist()
 
 # Daytime:
 #fnames = db.select('select raw_fn from rawdata where burst_num = 15 limit 501').raw_fn.tolist()
@@ -143,11 +159,25 @@ print 'Starting analysis.'
 tic = time.clock()
 
 # Get centroids from each file:
-centroids,numstars = getCentroids(fnames)
+if load_centroids:
+    print "Trying to load Centroids from Database"
+    centroids = db.find_centroids("burst_num = %s" % burst_num)
+    numstars = db.find_num_centroids("burst_num = %s" % burst_num)
+    if centroids ==[]:
+        print "Database does not contain centroid data"
+        compute_centroids=True
 
-# update centroid list into the database
-for count,cent in enumerate(centroids):
-    db.insert_centroids(cent,id[count])
+if compute_centroids:
+    print "Computing centroids for each image"
+    centroids,numstars = getCentroids(fnames)
+    # update centroid list into the database
+    print "Inserting centroid lists and number of stars into the database"
+    for count,cent in enumerate(centroids):
+        db.insert_centroids(cent,id[count])
+        db.insert_num_centroids(numstars[count],id[count])
+
+
+
     
 print 'Mean number of stars found: ', np.mean(numstars)
 
@@ -157,12 +187,28 @@ pname = "saved_centroids_" + time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime()) +
 pickle.dump( centroids, open( pname, "wb" ) )
 centroids = pickle.load( open( pname, "rb" ) )
 
-# Get quaternions from our centroids:
-quats,matched_centroids,nummatchstars = getQuaternions(centroids)
 
-# update quaternions into the database
-for count,q in enumerate(quats):
-    db.insert_quat(q,id[count])
+# Get quaternions from our centroids:
+if load_quats:
+    print "Trying to load Quaternions from Database"
+    quats = db.find_quats("burst_num = %s" % burst_num)
+    nummatchstars = db.find_num_matched_centroids("burst_num = %s" % burst_num)
+    matched_centroids=db.find_matched_centroids("burst_num= %s" % burst_num)
+    if quats ==[]:
+        print "Quaternion data not contained in database"
+        compute_quats=True
+
+
+if compute_quats:
+    print "Computing quaternions for each image"
+    quats,matched_centroids,nummatchstars = getQuaternions(centroids)
+    # update quaternions into the database
+    print"Inserting quaterninos, number of matched stars, and matched stars into the database"
+    for count,q in enumerate(quats):
+        db.insert_quat(q,id[count])
+        db.insert_num_matched_centroids(nummatchstars[count],id[count])
+        db.insert_matched_centroids([matched_centroids[count]],id[count])
+
 
 
 print 'Find yaw, pitch, and roll rms.'

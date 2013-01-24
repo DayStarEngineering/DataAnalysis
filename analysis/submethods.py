@@ -43,8 +43,8 @@ def bgsub(imgArray):
     bgBot = centroid.frobomad(img[middle:])[0]
  
     # Subtract from image
-    img[:middle] -= bgTop
-    img[middle:] -= bgBot
+    img[:middle] = img[:middle]-bgTop
+    img[middle:] = img[middle:]-bgBot
  
     # Subtract from image and return
     return img  
@@ -79,13 +79,13 @@ def colmeansub(imgArray):
     
         # Delete the dark rows from the image and update middle
         img = img[np.r_[0:middle-16, middle+16:ysize] ]
-        middle -= 16;
+        middle = middle-16;
     else:
         raise RuntimeError('Please provide a full or cropped image')
     
     # Subtract tiled averages
-    img[:middle] -= np.tile(topAvg, (middle,1))
-    img[middle:] -= np.tile(botAvg, (middle,1))
+    img[:middle] = img[:middle]-np.tile(topAvg, (middle,1))
+    img[middle:] = img[middle:]-np.tile(botAvg, (middle,1))
     
     # return subtracted image
     return img  
@@ -117,8 +117,8 @@ def windowsub(image,(x,y),(w,h), scale=1.5, sigma=2, neg=False):
     # window area for subtraction and returning:
     windowL = int(x) - w
     windowR = int(x) + w + 1
-    windowT = int(y) - h 
-    windowB = int(y) + h + 1
+    windowT = y - h
+    windowB = y + h + 1
     
     if windowL < 0: windowL = 0
     if windowR > xsize: windowR = xsize
@@ -142,7 +142,7 @@ def windowsub(image,(x,y),(w,h), scale=1.5, sigma=2, neg=False):
     if BB > ysize: BB = ysize
         
     # define window from image
-    window = np.int16(img[windowT:windowB, windowL:windowR])
+    window = img[windowT:windowB, windowL:windowR]
     
     # if window on both halves    
     # use top and bottom halve independently for cols, 
@@ -156,14 +156,14 @@ def windowsub(image,(x,y),(w,h), scale=1.5, sigma=2, neg=False):
         for col in range(0, window.shape[1]):
             colmT,s = chzphot.robomad(searchT[:,col], sigma)
             colmB,s = chzphot.robomad(searchB[:,col], sigma)
-            window[windowT:middle][:,col] -= colmT # top
-            window[middle:windowB][:,col] -= colmB # bottom
+            window[windowT:middle][:,col] = window[windowT:middle][:,col]-colmT # top
+            window[middle:windowB][:,col] = window[middle:windowB][:,col]-colmB # bottom
             
     # window is on a single half
     else:
         # Check that the search zones are in the same half
-        if middle-1 in range(TT,TB): TT = middle     
-        if middle in range(BT,BB): BB = middle-1
+        if middle-1 in range(np.int16(TT),np.int16(TB)): TT = middle
+        if middle in range(np.int16(BT),np.int16(BB)): BB = middle-1
         
         searchT = img[TT:TB, TL:TR]
         searchB = img[BT:BB, BL:BR]
@@ -171,7 +171,7 @@ def windowsub(image,(x,y),(w,h), scale=1.5, sigma=2, neg=False):
 
         for col in range(0, window.shape[1]):            
             colm,s = chzphot.robomad(search[:,col], sigma)
-            window[:, col] -= colm
+            window[:, col] = window[:, col]-colm
     
     # Remove negative values
     if neg is False:  window[(window < 0).nonzero()] = 0
